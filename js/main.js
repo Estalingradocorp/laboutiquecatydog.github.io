@@ -783,6 +783,21 @@
     setMeta('meta[name="twitter:description"]', "content", descripcion);
     setMeta('meta[name="author"]', "content", nombre);
 
+    /* Las URLs absolutas se calculan con el dominio donde el sitio está
+       publicado. Así, si el negocio compra un dominio propio, las etiquetas
+       de SEO y de redes sociales apuntan al dominio nuevo sin tocar código.
+       En index.html quedan los valores de Github Pages como respaldo para
+       los rastreadores que no ejecutan JavaScript. */
+    var origenSitio = location.origin === "null" ? "https://laboutiquecatydog.github.io" : location.origin;
+    var urlInicio = origenSitio + "/";
+    var urlImagen = origenSitio + "/assets/img/og-image.jpg";
+    var canonical = document.querySelector('link[rel="canonical"]');
+    if (canonical) canonical.setAttribute("href", urlInicio);
+    setMeta('meta[property="og:url"]', "content", urlInicio);
+    setMeta('meta[name="twitter:url"]', "content", urlInicio);
+    setMeta('meta[property="og:image"]', "content", urlImagen);
+    setMeta('meta[name="twitter:image"]', "content", urlImagen);
+
     /* Datos estructurados (SEO local): se regeneran con los datos reales.
        Las URLs van absolutas (los rastreadores las prefieren) y los
        horarios se leen de negocio.hours, no hardcodeados. */

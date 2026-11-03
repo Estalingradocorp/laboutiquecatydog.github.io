@@ -125,10 +125,10 @@ Como **respaldo físico** de entrega (buena práctica), NO como requisito. Graba
 - [x] Probar el login con una cuenta **sin** permiso de escritura → la rechaza con el mensaje claro y borra el token de la sesión → **4/4 pruebas OK**.
 - [x] Login real end-to-end con el scope nuevo: `/auth` → GitHub → `/callback` (código canjeado) → panel → **verificado en el log del Worker**.
 - [ ] ~~Trasladar la OAuth App y el Worker a las cuentas del cliente~~ → **descartado**: la llave se queda en la cuenta del desarrollador (sección 0). Queda documentado por si el cliente lo pide.
-- [ ] **Prueba de escritura** con el token del scope `public_repo`: confirmar que el panel puede publicar (ver nota abajo).
+- [x] **Prueba de escritura** con el token del scope `public_repo`: el camino real de escritura contra la API de GitHub quedó verificado (rama de prueba + `PUT /contents` con el mismo formato que usa el panel → commit `b81b5b23`, rama borrada después, `main` intacto). El scope `public_repo` cubre lectura y escritura de código en repos públicos (documentación oficial de GitHub).
 - [ ] Dar de alta al cliente en el panel con su propia cuenta y **practicar un cambio real** (texto + foto) → ver checklist de la reunión.
 
-> **Prueba de escritura (sin dejar rastro):** en el navegador donde ya entró el panel, abrir la consola y ejecutar la creación y el borrado de una rama de prueba. Si el POST y el DELETE devuelven 201 y 204, el token tiene permiso de escritura sobre el repo público y el botón **Publicar** va a funcionar.
+> **El sitio publicado no necesita que se actualice nada a mano:** el panel publica con un commit a `data/pagina.json` o `data/sitio.json`, y GitHub Pages reconstruye solo en ~1 minuto. La documentación interna (bitácora, README, guías) **no se publica** y no influye en la web.
 
 ### En la reunión (con el cliente)
 
@@ -146,3 +146,24 @@ Como **respaldo físico** de entrega (buena práctica), NO como requisito. Graba
 Nada se pierde: el cliente es dueño del repositorio y de su cuenta de GitHub (por eso sus commits quedan a su nombre y puede seguir publicando aunque el desarrollador se borre); el código es estándar (HTML/CSS/JS sin dependencias) y está documentado (README + bitácora). Cualquier desarrollador puede continuar. Ese es justamente el argumento de venta.
 
 Lo único que hoy depende del desarrollador es la **llave del login** (OAuth App + Worker): si desaparece, el cliente entra con el **PAT de alcance fino** (plan B de la sección 0) y sigue publicando. El traspaso de la llave al cliente está documentado en 3 pasos por si el cliente quiere cerrarlo del todo.
+
+---
+
+## 8. Si el negocio compra un dominio propio
+
+El repositorio puede seguir llamándose `laboutiquecatydog.github.io`: el dominio propio se le **agrega**, no reemplaza nada del proyecto. GitHub Pages da el HTTPS (certificado automático) solo.
+
+1. **Comprar el dominio** a nombre del cliente (registrador + correo del cliente). Sugerencias: `laboutiquecatydog.com.ar`, `laboutiquecatydog.com`, `boutiquecatydog.com.ar`.
+2. **GitHub** → el repo → Settings → Pages → **Custom domain** → escribir el dominio → Save. GitHub crea el archivo `CNAME` en el repo y muestra los registros de DNS que hay que configurar.
+3. **Registrador/DNS**: crear los registros que indique GitHub (para el dominio raíz: `A` a las IP de GitHub Pages; para `www`: `CNAME` a `laboutiquecatydog.github.io`).
+4. **Cloudflare Worker — el paso que no hay que olvidar**: Settings → Variables → `ALLOWED_DOMAINS` → agregar el dominio nuevo:
+   `laboutiquecatydog.github.io, <TU-DOMINIO>, www.<TU-DOMINIO>`
+   Sin esto, el login del panel rebota con *"error de acceso"*: el Worker valida desde qué dominio se vuelve al panel.
+5. **Archivos del repo con URLs absolutas** (4 lugares):
+   - `index.html`: `link rel="canonical"`, `og:url`, `og:image`, `twitter:image`
+   - `robots.txt`: la línea `Sitemap: ...`
+   - `sitemap.xml`: el `<loc>`
+   - `js/main.js`: el link de ayuda que aparece si se abre el `index.html` con doble clic
+   (las URLs de SEO que se calculan en vivo ya toman el dominio nuevo solas, pero conviene actualizarlas para los rastreadores que no ejecutan JavaScript).
+6. **Verificar**: la web abre en el dominio nuevo con HTTPS, el panel entra con el login de GitHub, y `Publicar` sigue funcionando (el `CNAME` que crea GitHub hay que commitearlo si GitHub no lo hace solo).
+7. **Search Console**: mover el sitemap al dominio nuevo (el sitio se mantiene en las dos direcciones; la canonical apunta a la nueva).

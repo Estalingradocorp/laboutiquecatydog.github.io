@@ -236,9 +236,11 @@
   var instantaneaPublicada = ""; // estado tal cual está en GitHub (base del chip)
   var timerCaptura = 0;
 
+  /* El origen del sitio es el mismo donde está abierto el panel: así, si el
+     negocio compra un dominio propio, la vista previa sigue funcionando sin
+     tocar código (y en local sigue apuntando a localhost). */
   function mismoOrigenDelSitio() {
-    var esLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
-    return esLocal ? location.protocol + "//" + location.host : "https://laboutiquecatydog.github.io";
+    return location.origin;
   }
   var ORIGEN_SITIO = mismoOrigenDelSitio();
 
