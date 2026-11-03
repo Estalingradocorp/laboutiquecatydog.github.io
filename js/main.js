@@ -885,13 +885,27 @@
     document.documentElement.classList.remove("js");
     if (window.console) console.error("No se pudo cargar el contenido del sitio:", error);
     var main = document.querySelector("main");
-    if (!main || main.innerHTML.trim() !== "") return;
+    if (!main) return;
+    /* <main> ya trae un bloque <noscript> (que con JS activo no se ve pero
+       cuenta como contenido): por eso no se puede usar innerHTML vacío como
+       señal de "ya se renderizó". Si el render real ya ocurrió, no se toca. */
+    if (main.querySelector(".section")) return;
+    var abiertoComoArchivo = location.protocol === "file:";
     main.innerHTML =
       '<section class="section"><div class="container">' +
-      "<h2>No se pudo cargar el contenido</h2>" +
-      "<p>Este sitio carga sus datos desde archivos JSON y necesita abrirse desde un servidor web. " +
-      "Si lo estás viendo de forma local, iniciá un servidor (por ejemplo <code>python -m http.server</code>) " +
-      "y volvé a cargar la página.</p></div></section>";
+      (abiertoComoArchivo
+        ? "<h2>Abrí la web desde un servidor, no desde el archivo</h2>" +
+          "<p>El sitio carga sus textos y sus fotos desde archivos JSON y el navegador no los puede leer " +
+          "cuando abrís <code>index.html</code> con doble clic. Hay dos formas de verlo:</p>" +
+          "<ul>" +
+          "<li><strong>En producción</strong>: <a href=\"https://laboutiquecatydog.github.io/\">laboutiquecatydog.github.io</a></li>" +
+          "<li><strong>En esta computadora</strong>: doble clic en <code>preview.cmd</code> (levanta un servidor local y abre la web solo).</li>" +
+          "</ul>"
+        : "<h2>No se pudo cargar el contenido</h2>" +
+          "<p>Este sitio carga sus datos desde archivos JSON y necesita abrirse desde un servidor web. " +
+          "Si lo estás viendo de forma local, iniciá un servidor (por ejemplo <code>python -m http.server</code>) " +
+          "y volvé a cargar la página.</p>") +
+      "</div></section>";
   }
 
   /* 1) cargar datos  2) renderizar  3) iniciar interacciones  4) huellas */
