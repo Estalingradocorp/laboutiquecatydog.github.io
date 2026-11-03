@@ -32,7 +32,10 @@
   <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
   <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png" />
   <meta name="apple-mobile-web-app-title" content="La Boutique" />
-  <link rel="preload" as="image" href="assets/img/slide-1.jpg" imagesrcset="assets/img/slide-1-900.jpg 900w, assets/img/slide-1.jpg 1600w" imagesizes="100vw" fetchpriority="high" />
+  <link rel="manifest" href="manifest.json" />
+  <!-- El preload debe usar la misma regla de "sizes" que la imagen real:
+       si no, el navegador descarga la variante equivocada. -->
+  <link rel="preload" as="image" href="assets/img/slide-1.jpg" imagesrcset="assets/img/slide-1-900.jpg 900w, assets/img/slide-1.jpg 1600w" imagesizes="(max-width: 860px) 100vw, 50vw" fetchpriority="high" />
 
   <!-- Tipografías -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -93,7 +96,24 @@
 
   <div class="nav-overlay" id="nav-overlay" hidden></div>
 
-  <main></main>
+  <main>
+    <!-- Sin JavaScript el catálogo no se puede generar (los productos y las
+         fotos vienen de data/*.json). Al menos se deja el contacto, que es
+         lo que el visitante necesita de verdad. -->
+    <noscript>
+      <div class="noscript-aviso">
+        <p class="eyebrow">Salta · Argentina</p>
+        <h1>La Boutique Cat & Dog</h1>
+        <p class="lead">Tienda de mascotas: alimento, accesorios y productos de cuidado para perros y gatos.</p>
+        <p>Para ver el catálogo con fotos necesitás activar JavaScript. Mientras tanto, escribinos o visitanos:</p>
+        <ul>
+          <li><a class="btn btn-whatsapp btn-lg" href="https://wa.me/5493874578676">WhatsApp +54 9 387 457-8676</a></li>
+          <li><strong>Dirección:</strong> Diario La Nación y Diario El Litoral, B.º Periodista, Salta</li>
+          <li><strong>Horario:</strong> lunes a sábados de 10:00 a 13:00</li>
+        </ul>
+      </div>
+    </noscript>
+  </main>
 
   <footer class="site-footer"></footer>
 

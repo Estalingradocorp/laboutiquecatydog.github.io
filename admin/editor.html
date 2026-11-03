@@ -38,9 +38,9 @@
 
         <details class="auth-token">
           <summary>Iniciar sesión con un token de acceso (avanzado)</summary>
-          <p class="auth-token-hint">Si el login con GitHub falla, podés pegar un token personal: GitHub → Settings → Developer settings → Personal access tokens <strong>(classic)</strong> → Generate new token, con permiso <code>repo</code>.</p>
+          <p class="auth-token-hint">Solo si el login con GitHub no funciona. Generá un <strong>token de acceso personal (fine-grained)</strong>: GitHub → Settings → Developer settings → Personal access tokens → <strong>Fine-grained tokens</strong> → Generate new token. Repository access: <strong>Only select repositories</strong> → elegir <code>laboutiquecatydog.github.io</code>. Permisos: <strong>Contents → Read and write</strong>. Ese token solo puede tocar este repositorio; no le da acceso a nada más de tu cuenta.</p>
           <div class="token-fila">
-            <input id="campo-token" type="password" inputmode="text" autocomplete="off" placeholder="ghp_…" aria-label="Token de acceso de GitHub" />
+            <input id="campo-token" type="password" inputmode="text" autocomplete="off" placeholder="github_pat_…" aria-label="Token de acceso de GitHub" />
             <button id="boton-token" class="btn-borde" type="button">Entrar</button>
           </div>
         </details>
@@ -172,8 +172,10 @@
         <p class="form-vacio">Cargando la galería…</p>
       </div>
       <div id="media-subir" class="media-subir" hidden>
-        <label class="media-drop" for="media-archivo">Elegí un archivo de tu PC (JPG o PNG)</label>
-        <input id="media-archivo" type="file" accept="image/jpeg,image/png,image/webp" hidden />
+        <label class="media-drop" for="media-archivo">Elegí un archivo de tu PC (JPG, PNG o WEBP)</label>
+        <!-- El input no se oculta con "hidden": queda invisible pero
+             enfocable, para que se pueda usar con el teclado. -->
+        <input id="media-archivo" class="visualmente-oculto" type="file" accept="image/jpeg,image/png,image/webp" />
         <div id="media-prevista" class="media-prevista" hidden>
           <img id="media-prevista-img" alt="Vista previa de la imagen elegida" />
           <p id="media-prevista-info" class="campo-pista"></p>

@@ -164,18 +164,57 @@
     window.setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, (duracion || 3400) + 320);
   }
 
+  /* Disponible para el motor de imágenes (mensajes que aparecen cuando el
+     modal de subida ya está cerrado). */
+  window.BQToast = toast;
+
+  /* ------------------------------- Modales ------------------------------- */
+  /* Abrir y cerrar modales de forma consistente: se guarda el elemento que
+     tenía el foco para devolvérselo al cerrar (si no, el cliente perdía
+     el lugar y tenía que andar a ciegas con el teclado). */
+  var FOCO_ANTES_MODAL = null;
+
+  function modalAbierto() {
+    var abierto = null;
+    $$(".modal").forEach(function (m) { if (!m.hidden) { abierto = m; } });
+    return abierto;
+  }
+
+  function abrirModal(modal) {
+    if (!modal) { return; }
+    if (modal.hidden) { FOCO_ANTES_MODAL = document.activeElement; }
+    modal.hidden = false;
+    var primero = modal.querySelector(
+      "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])"
+    );
+    if (primero) { try { primero.focus(); } catch (e2) {} }
+  }
+
+  function cerrarModal(modal) {
+    if (!modal) { return; }
+    modal.hidden = true;
+    if (FOCO_ANTES_MODAL && FOCO_ANTES_MODAL.focus) {
+      try { FOCO_ANTES_MODAL.focus(); } catch (e2) {}
+    }
+    FOCO_ANTES_MODAL = null;
+  }
+
+  /* Expuesto para que el selector de imágenes use el mismo mecanismo. */
+  window.BQModales = { abrir: abrirModal, cerrar: cerrarModal };
+
   /* --------------------------- Modal confirmar -------------------------- */
   var confirmarAccion = null;
   function pedirConfirmacion(texto, alAceptar) {
     confirmarAccion = alAceptar;
     $("#modal-confirmar-texto").textContent = texto;
-    $("#modal-confirmar").hidden = false;
-    $("#modal-confirmar-si").focus();
+    abrirModal($("#modal-confirmar"));
   }
   function cerrarConfirmar(ok) {
-    $("#modal-confirmar").hidden = true;
-    if (ok && confirmarAccion) { confirmarAccion(); }
+    var modal = $("#modal-confirmar");
+    var accion = confirmarAccion;
     confirmarAccion = null;
+    cerrarModal(modal);
+    if (ok && accion) { accion(); }
   }
 
   /* ------------------------------- Estado ------------------------------- */
@@ -536,17 +575,29 @@
   /* ------------------------- Acciones de la lista ----------------------- */
   /* Estado central de cambios: chip + botones + borradores locales.
      Un cambio en la portada o en los datos del local deja todo “sucio”. */
-  function actualizarEstadoCambios() {
-    var sucio = borrador || borradorSitio;
-    $("#chip-cambios").hidden = !sucio;
-    $("#boton-publicar").disabled = !sucio;
-    $("#boton-descartar").disabled = !sucio;
+  var timerBorrador = 0;
+
+  /* El borrador se escribe con retardo: antes se serializaba y guardaba
+     el modelo entero en CADA tecla, y eso trababa el panel (el texto
+     largo se escribía a tirones). */
+  function guardarBorradores() {
+    window.clearTimeout(timerBorrador);
+    timerBorrador = 0;
     try {
       if (borrador) { localStorage.setItem(CLAVE_BORRADOR, JSON.stringify(datos)); }
       else { localStorage.removeItem(CLAVE_BORRADOR); }
       if (borradorSitio) { localStorage.setItem(CLAVE_BORRADOR_SITIO, JSON.stringify(datosSitio)); }
       else { localStorage.removeItem(CLAVE_BORRADOR_SITIO); }
     } catch (e2) { /* modo privado: sin borrador persistente */ }
+  }
+
+  function actualizarEstadoCambios() {
+    var sucio = borrador || borradorSitio;
+    $("#chip-cambios").hidden = !sucio;
+    $("#boton-publicar").disabled = !sucio;
+    $("#boton-descartar").disabled = !sucio;
+    window.clearTimeout(timerBorrador);
+    timerBorrador = window.setTimeout(guardarBorradores, 400);
   }
 
   function marcarCambios(sucio) {
@@ -781,12 +832,16 @@
 
   /* Callbacks del formulario de la sección abierta */
   function alCambiarSeccionForm(esEstructural) {
-    borrador = true;
-    actualizarEstadoCambios();
+    /* marcarCambios (y no "borrador = true") para que el cambio entre al
+       historial de deshacer: si no, Ctrl+Z no lo revertía y el cliente
+       perdía el texto sin aviso. */
+    marcarCambios(true);
     if (esEstructural) {
       actualizarFormularioActual();
-      programarRerender();
     }
+    /* También el texto se refleja en la vista previa: antes, al volver a
+       "Vista previa" se veía el texto viejo y parecía que no se guardó. */
+    programarRerender();
   }
 
   function alCambiarImagenSeccion(ruta, config) {
@@ -800,12 +855,14 @@
   }
 
   function alCambiarSitioForm(esEstructural) {
-    borradorSitio = true;
-    actualizarEstadoCambios();
+    /* Igual que en la portada: el cambio entra al historial de deshacer. */
+    marcarCambiosSitio(true);
     if (esEstructural) {
       reconstruirFormSitio();
-      programarRerender();
     }
+    /* La vista previa (encabezado, contacto y pie) se actualiza al instante:
+       antes los datos del local se editaban a ciegas. */
+    programarRerender();
   }
 
   function alCambiarImagenSitio(ruta, config) {
@@ -901,28 +958,35 @@
      corta para no pisar ediciones consecutivas). La posición de scroll
      se conserva: cambiar una foto no te puede mandar al inicio. */
   var timerRerender = 0;
+
+  /* Dibuja el estado actual del editor en la vista previa. */
+  function aplicarRerender() {
+    var marco = $("#marco-vista");
+    var win = marco && marco.contentWindow;
+    if (!win) { return; }
+    /* Si el cliente está escribiendo en la vista previa, NO se toca el DOM:
+       se difiere hasta que termine (al terminar vuelve a pedir el
+       re-render). Reemplazar el DOM a mitad de una edición hacía que
+       el panel "se comiera" lo que el cliente acababa de escribir. */
+    if (window.BQInline && window.BQInline.hayEdicion()) { return; }
+    if (window.BQInline) { BQInline.cancelar(); }
+    var y = win.scrollY || 0;
+    if (win.BQPreview && datosSitio && datos) {
+      try { win.BQPreview.renderizar(datosSitio, datos); } catch (e2) {}
+    }
+    aplicarSubidasEnVista(marco);
+    BQInline.aplicar(marco, ganchosInline());
+    if (seccionAbierta >= 0 && datos && datos.secciones[seccionAbierta]) {
+      BQInline.seleccionar(datos.secciones[seccionAbierta].id, false);
+    }
+    if (y > 0) {
+      try { win.scrollTo(0, y); } catch (e3) { /* best-effort */ }
+    }
+  }
+
   function programarRerender() {
     window.clearTimeout(timerRerender);
-    timerRerender = window.setTimeout(function () {
-      var marco = $("#marco-vista");
-      var win = marco && marco.contentWindow;
-      if (!win) { return; }
-      /* El re-render reemplaza el DOM de la vista: cerrar la edición
-         abierta (si quedara una) sin escribir su valor. */
-      if (window.BQInline) { BQInline.cancelar(); }
-      var y = win.scrollY || 0;
-      if (win.BQPreview && datosSitio && datos) {
-        try { win.BQPreview.renderizar(datosSitio, datos); } catch (e2) {}
-      }
-      aplicarSubidasEnVista(marco);
-      BQInline.aplicar(marco, ganchosInline());
-      if (seccionAbierta >= 0 && datos && datos.secciones[seccionAbierta]) {
-        BQInline.seleccionar(datos.secciones[seccionAbierta].id, false);
-      }
-      if (y > 0) {
-        try { win.scrollTo(0, y); } catch (e3) { /* best-effort */ }
-      }
-    }, 220);
+    timerRerender = window.setTimeout(aplicarRerender, 220);
   }
 
   /* Cuando la vista previa carga, se le aplican los datos del editor y
@@ -994,13 +1058,18 @@
     var esTexto = modoPanel === "texto";
     $("#modo-vista").classList.toggle("is-activo", !esTexto);
     $("#modo-texto").classList.toggle("is-activo", esTexto);
+    document.querySelector(".vista-barra").hidden = false;
     document.querySelector(".vista-marco").hidden = esTexto;
     $("#form-seccion").hidden = !esTexto;
     if (esTexto) { actualizarFormularioActual(); }
-    /* Al volver a la vista previa con una sección abierta, el iframe
-       salta ahí para que veas el resultado de lo que editaste. */
-    if (!esTexto && seccionAbierta >= 0 && datos && datos.secciones[seccionAbierta]) {
-      irASeccion(datos.secciones[seccionAbierta]);
+    /* Al volver a la vista previa se repinta con lo último editado (si no,
+       el cliente veía el texto viejo y creía que no se había guardado) y
+       el iframe salta a la sección abierta. */
+    if (!esTexto) {
+      aplicarRerender();
+      if (seccionAbierta >= 0 && datos && datos.secciones[seccionAbierta]) {
+        irASeccion(datos.secciones[seccionAbierta]);
+      }
     }
   }
 
@@ -1011,15 +1080,43 @@
       p.classList.toggle("is-activa", p.getAttribute("data-pestana") === nombre);
     });
     var esSitio = nombre === "sitio";
-    document.querySelector(".cuerpo").hidden = esSitio;
+    /* En "Datos del local" la lista de secciones no aplica, pero la vista
+       previa SÍ: así la clienta ve cambiar el encabezado, el contacto y el
+       pie mientras los edita, en vez de trabajar a ciegas. */
+    document.querySelector(".panel-lista").hidden = esSitio;
     $("#panel-datos").hidden = !esSitio;
     if (esSitio) {
+      document.querySelector(".vista-barra").hidden = true;
+      document.querySelector(".vista-marco").hidden = false;
+      $("#form-seccion").hidden = true;
       if (datosSitio) {
         reconstruirFormSitio();
       }
+      aplicarRerender();
+      irAlPieDeLaVista();
     } else {
       actualizarModoPanel();
     }
+  }
+
+  /* Lleva la vista previa al bloque de contacto (donde están WhatsApp,
+     horarios, ubicación y redes) o, si no existe, al pie de la web. Así
+     la clienta ve justo lo que está editando. */
+  function irAlPieDeLaVista() {
+    var marco = $("#marco-vista");
+    var win = marco && marco.contentWindow;
+    if (!win || !win.document) { return; }
+    try {
+      var doc = win.document;
+      var destino = doc.getElementById("contacto") || doc.querySelector("footer");
+      if (destino) {
+        var y = destino.offsetTop;
+        if (!y && doc.body) { y = doc.body.scrollHeight; }
+        win.scrollTo(0, y || 0);
+      } else if (doc.body) {
+        win.scrollTo(0, doc.body.scrollHeight);
+      }
+    } catch (e2) { /* best-effort */ }
   }
 
   /* ------------------------------ Publicar ------------------------------ */
@@ -1430,6 +1527,7 @@
   }
 
   function volverACargar() {
+    window.clearTimeout(timerBorrador);
     localStorage.removeItem(CLAVE_BORRADOR);
     localStorage.removeItem(CLAVE_BORRADOR_SITIO);
     cargarEditor();
@@ -1437,6 +1535,12 @@
 
   /* Iniciales + conexiones de la interfaz */
   function conectarEventos() {
+    /* Si la clienta cierra la pestaña con cambios sin publicar, el
+       borrador se guarda igual (el retardo no debe comerse el trabajo). */
+    window.addEventListener("beforeunload", function () {
+      if (borrador || borradorSitio) { guardarBorradores(); }
+    });
+
     $("#boton-login").addEventListener("click", iniciarLogin);
     $("#boton-token").addEventListener("click", iniciarLoginConToken);
     $("#boton-salir").addEventListener("click", function () {
@@ -1448,7 +1552,7 @@
     $("#boton-carga-reintentar").addEventListener("click", cargarEditor);
 
     $("#boton-agregar").addEventListener("click", function () {
-      $("#modal-agregar").hidden = false;
+      abrirModal($("#modal-agregar"));
     });
 
     $("#boton-publicar").addEventListener("click", publicar);
@@ -1527,20 +1631,52 @@
        además cancela la acción pendiente. */
     $$(".modal").forEach(function (caja) {
       caja.addEventListener("click", function (evento) {
-        if (evento.target === caja) { caja.hidden = true; if (caja.id === "modal-confirmar") { cerrarConfirmar(false); } }
-      });
-      caja.addEventListener("keydown", function (evento) {
-        if (evento.key === "Escape") {
+        if (evento.target === caja) {
           if (caja.id === "modal-confirmar") { cerrarConfirmar(false); }
-          else { caja.hidden = true; }
+          else { cerrarModal(caja); }
         }
       });
     });
     $$(".boton-x").forEach(function (boton) {
-      boton.addEventListener("click", function () { boton.closest(".modal").hidden = true; });
+      boton.addEventListener("click", function () { cerrarModal(boton.closest(".modal")); });
     });
     $("#modal-confirmar-si").addEventListener("click", function () { cerrarConfirmar(true); });
     $("#modal-confirmar-no").addEventListener("click", function () { cerrarConfirmar(false); });
+
+    /* Escape cierra el modal abierto (no importa dónde esté el foco: antes
+       solo cerraba si el foco ya estaba dentro del modal). */
+    document.addEventListener("keydown", function (evento) {
+      if (evento.key !== "Escape") { return; }
+      var abierto = modalAbierto();
+      if (!abierto) { return; }
+      evento.preventDefault();
+      if (abierto.id === "modal-confirmar") { cerrarConfirmar(false); }
+      else { cerrarModal(abierto); }
+    });
+
+    /* El foco no puede salir del modal con Tab: así el teclado no se
+       pierde detrás de la ventana flotante. */
+    document.addEventListener("keydown", function (evento) {
+      if (evento.key !== "Tab") { return; }
+      var abierto = modalAbierto();
+      if (!abierto) { return; }
+      var focoables = Array.prototype.slice.call(abierto.querySelectorAll(
+        "a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), " +
+        "textarea:not([disabled]), [tabindex]:not([tabindex='-1'])"
+      )).filter(function (el) {
+        return el.offsetParent !== null || el === document.activeElement;
+      });
+      if (!focoables.length) { return; }
+      var primero = focoables[0];
+      var ultimo = focoables[focoables.length - 1];
+      if (evento.shiftKey && document.activeElement === primero) {
+        evento.preventDefault();
+        ultimo.focus();
+      } else if (!evento.shiftKey && document.activeElement === ultimo) {
+        evento.preventDefault();
+        primero.focus();
+      }
+    });
   }
 
   /* -------------------------------- Init -------------------------------- */

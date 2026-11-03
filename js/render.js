@@ -75,6 +75,10 @@
   function hrefSeguro(v) {
     var s = String(v == null ? "" : v).trim();
     if (s === "") { return "#"; }
+    /* Un "//dominio.com" es una URL absoluta camuflada (protocolo-relative):
+       el navegador la resuelve como https://dominio.com. Se rechaza para
+       que ningún dato pegado pueda sacar al cliente del sitio. */
+    if (s.indexOf("//") === 0) { return "#"; }
     if (s.charAt(0) === "#" || s.charAt(0) === "/") { return a(s); }
     if (/^(https?:|mailto:|tel:)/i.test(s)) { return a(s); }
     return "#";
@@ -141,17 +145,23 @@
     }).join("");
 
     var contacto = "";
-    if (set(neg.address)) contacto += "<li><span>" + e(neg.address) + "</span></li>";
-    if (set(neg.hours)) contacto += "<li><span>" + e(neg.hours) + "</span></li>";
-    if (set(neg.phone)) contacto += "<li><span>" + e(neg.phone) + "</span></li>";
-    if (set(neg.email)) contacto += '<li><a href="mailto:' + a(neg.email) + '">' + e(neg.email) + "</a></li>";
+    /* Cada dato lleva su clave: el editor inline usa esa clave para saber
+       qué campo del JSON modificar. Antes se asignaba por posición y, si
+       faltaba un dato (por ejemplo el teléfono), el cliente terminaba
+       editando el campo equivocado. */
+    if (set(neg.address)) contacto += '<li><span data-sitio="negocio.address">' + e(neg.address) + "</span></li>";
+    if (set(neg.hours)) contacto += '<li><span data-sitio="negocio.hours">' + e(neg.hours) + "</span></li>";
+    if (set(neg.phone)) contacto += '<li><span data-sitio="negocio.phone">' + e(neg.phone) + "</span></li>";
+    if (set(neg.email)) contacto += '<li><a href="mailto:' + a(neg.email) + '" data-sitio="negocio.email">' + e(neg.email) + "</a></li>";
     if (set(neg.whatsapp)) {
-      contacto += '<li><a data-wa-link data-wa-msg="' + wa("", sitio) + '">' + e(f.whatsappTexto || "WhatsApp") + "</a></li>";
+      contacto += '<li><a data-wa-link data-sitio="footer.whatsappTexto" data-wa-msg="' + wa("", sitio) + '">' + e(f.whatsappTexto || "WhatsApp") + "</a></li>";
     }
 
     var social = (f.ordenSocial || ["instagram", "facebook", "tiktok"]).map(function (key) {
       var r = redes[key];
       if (!r || !set(r.url)) return "";
+      /* El ícono no lleva texto editable: la etiqueta de cada red se
+         cambia desde «Datos del local». */
       return (
         '<li><a href="' + hrefSeguro(r.url) + '" target="_blank" rel="noopener" aria-label="' + a(r.etiqueta) + '">' +
         (SOCIAL_SVG[key] || "") +
@@ -182,6 +192,7 @@
       "</div>" +
       '<div class="container footer-bottom">' +
       "<p>&copy; <span data-year>2026</span> " + e(f.copyright) + "</p>" +
+      '<p class="footer-legal"><a href="privacidad.html">Aviso de privacidad</a></p>' +
       "</div>"
     );
   }
@@ -205,7 +216,8 @@
         ? (s.prioridad ? ' fetchpriority="high"' : "")
         : ' loading="lazy"';
       return (
-        '<figure class="' + cls + '" data-slide' + aria + ">" +
+        '<figure class="' + cls + '" data-slide role="group" aria-roledescription="imagen"' +
+        ' aria-label="Imagen ' + (i + 1) + " de " + (b.slides || []).length + '"' + aria + ">" +
         '<img src="' + a(s.imagen) + '"' +
         (s.srcset ? ' srcset="' + a(s.srcset) + '"' : "") +
         (s.sizes ? ' sizes="' + a(s.sizes) + '"' : "") +
@@ -233,7 +245,7 @@
       "</a>" +
       "</div></div>" +
       '<div class="hero-media">' +
-      '<div class="carousel" data-carousel aria-roledescription="carrusel" aria-label="' + a(b.carruselAria) + '">' +
+      '<div class="carousel" data-carousel data-autoplay aria-roledescription="carrusel" aria-label="' + a(b.carruselAria) + '">' +
       '<div class="carousel-viewport">' + slides + "</div>" +
       '<button class="carousel-btn carousel-prev" type="button" data-carousel-prev aria-label="Imagen anterior">' + SVG_PREV + "</button>" +
       '<button class="carousel-btn carousel-next" type="button" data-carousel-next aria-label="Imagen siguiente">' + SVG_NEXT + "</button>" +
@@ -278,8 +290,10 @@
       var cls = "pc-slide" + (i === 0 ? " is-active" : "");
       var aria = i === 0 ? "" : ' aria-hidden="true"';
       return (
-        '<img class="' + cls + '" data-slide src="' + a(f.foto) + '" alt="' + a(f.alt) +
-        '" loading="lazy" decoding="async"' + aria + " />"
+        '<img class="' + cls + '" data-slide src="' + a(f.foto) + '" alt="' + a(f.alt) + '"' +
+        (f.ancho ? ' width="' + f.ancho + '"' : "") +
+        (f.alto ? ' height="' + f.alto + '"' : "") +
+        ' loading="lazy" decoding="async"' + aria + " />"
       );
     }).join("");
 

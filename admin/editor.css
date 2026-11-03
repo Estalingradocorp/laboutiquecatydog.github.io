@@ -804,3 +804,26 @@ a { color: var(--tinta); }
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Elemento invisible pero enfocable (accesibilidad por teclado). */
+.visualmente-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.visualmente-oculto:focus-visible {
+  outline: 3px solid var(--acento);
+  outline-offset: 2px;
+}
+/* El input invisible no muestra su propio foco: se resalta la etiqueta. */
+#media-subir:focus-within .media-drop {
+  border-color: var(--acento);
+  color: var(--acento);
+}

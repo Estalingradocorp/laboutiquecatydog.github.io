@@ -45,8 +45,12 @@
 
   function alFallar(res) {
     if (res.status === 401) { throw new Error("La sesión venció: volvé a iniciar sesión."); }
+    if (res.status === 403) { throw new Error("Tu cuenta no tiene permiso para publicar en este repositorio."); }
+    if (res.status === 404) { throw new Error("No se encontró el archivo o la carpeta en GitHub."); }
     if (res.status === 409 || res.status === 422) { throw new Error("El repositorio cambió mientras subías (reintentá)."); }
-    throw new Error("HTTP " + res.status + " al hablar con GitHub");
+    if (res.status === 429) { throw new Error("GitHub te pidió esperar un momento. Volvé a intentar en un minuto."); }
+    if (res.status >= 500) { throw new Error("GitHub está teniendo problemas ahora. Probá de nuevo en unos minutos."); }
+    throw new Error("No se pudo completar la operación con GitHub (código " + res.status + ").");
   }
 
   /* ----------------------------- Galería -------------------------------- */
@@ -66,26 +70,59 @@
       });
   }
 
+  /* Miniatura de la galería. Antes se retenía el archivo ORIGINAL completo
+     en memoria (un objectURL por imagen) y se cargaban todas de una vez:
+     con muchas fotos eso hundía la memoria del navegador. Ahora:
+     - se descarga, se mide la imagen original (para completar ancho/alto),
+     - se genera una miniatura liviana en canvas,
+     - se libera el original (revokeObjectURL),
+     - y cada miniatura se pide solo cuando la miniatura entra en pantalla. */
   function miniaturaDe(item) {
     if (miniaturas[item.path]) { return Promise.resolve(miniaturas[item.path]); }
     return apiFetch("/repos/" + REPO + "/contents/" + item.path + "?ref=" + BRANCH,
       { headers: { Accept: "application/vnd.github.raw" } })
       .then(function (res) { if (!res.ok) { alFallar(res); } return res.blob(); })
       .then(function (blob) {
-        var url = URL.createObjectURL(blob);
-        miniaturas[item.path] = url;
-        return url;
+        return new Promise(function (ok) {
+          var url = URL.createObjectURL(blob);
+          var im = new Image();
+          im.onload = function () {
+            var ancho = im.naturalWidth || 0;
+            var alto = im.naturalHeight || 0;
+            var resultado = { url: "", ancho: ancho, alto: alto };
+            if (ancho && alto) {
+              try {
+                var max = 400;
+                var esc = Math.min(1, max / ancho);
+                var cv = document.createElement("canvas");
+                cv.width = Math.max(1, Math.round(ancho * esc));
+                cv.height = Math.max(1, Math.round(alto * esc));
+                var ctx = cv.getContext("2d");
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, cv.width, cv.height);
+                ctx.drawImage(im, 0, 0, cv.width, cv.height);
+                resultado.url = cv.toDataURL("image/jpeg", 0.72);
+              } catch (e2) {
+                /* Si el canvas no puede generarse (SVG raro, etc.) se usa
+                   el original, pero igual se libera el objectURL al cerrar. */
+                resultado.url = url;
+                resultado.usaOriginal = true;
+              }
+            } else {
+              resultado.url = url;
+              resultado.usaOriginal = true;
+            }
+            if (!resultado.usaOriginal) { URL.revokeObjectURL(url); }
+            miniaturas[item.path] = resultado;
+            ok(resultado);
+          };
+          im.onerror = function () {
+            URL.revokeObjectURL(url);
+            ok({ url: "", ancho: 0, alto: 0 });
+          };
+          im.src = url;
+        });
       });
-  }
-
-  /* Medidas reales de una miniatura (para completar ancho/alto del JSON) */
-  function medidasDe(url) {
-    return new Promise(function (ok) {
-      var im = new Image();
-      im.onload = function () { ok({ ancho: im.naturalWidth, alto: im.naturalHeight }); };
-      im.onerror = function () { ok({ ancho: 0, alto: 0 }); };
-      im.src = url;
-    });
   }
 
   /* Variante -900 de una foto de galería (convención de nombres del sitio) */
@@ -96,6 +133,36 @@
     var existe = listaGaleria && listaGaleria.some(function (o) { return o.name === candidata; });
     if (!existe) { return null; }
     return CARPETA + "/" + candidata + " 900w, " + item.path + " " + ancho + "w";
+  }
+
+  /* Carga diferida: cada miniatura se pide recién cuando entra en pantalla.
+     Con 40 fotos en el repo, antes se descargaban todas de golpe. */
+  var observador = null;
+
+  function observarMiniatura(boton, item) {
+    var cargar = function () {
+      miniaturaDe(item).then(function (r) {
+        var img = boton.querySelector("img");
+        if (img && r.url) { img.src = r.url; }
+        boton.dataset.ancho = r.ancho || "";
+        boton.dataset.alto = r.alto || "";
+      }).catch(function () {
+        var img = boton.querySelector("img");
+        if (img) { img.removeAttribute("src"); }
+      });
+    };
+    if (!("IntersectionObserver" in window)) { cargar(); return; }
+    if (!observador) {
+      observador = new IntersectionObserver(function (entradas) {
+        entradas.forEach(function (e) {
+          if (!e.isIntersecting) { return; }
+          observador.unobserve(e.target);
+          if (e.target._cargarMiniatura) { e.target._cargarMiniatura(); }
+        });
+      }, { rootMargin: "200px" });
+    }
+    boton._cargarMiniatura = cargar;
+    observador.observe(boton);
   }
 
   function pintarGaleria() {
@@ -121,23 +188,21 @@
         pie.textContent = item.name;
         boton.appendChild(pie);
         boton.addEventListener("click", function () {
-          var url = miniaturas[item.path];
-          if (!url) { return; }
-          medidasDe(url).then(function (mm) {
-            var cfg = ACTUAL;
-            if (!cfg) { return; }
-            var elegir = cfg.alElegir;
-            cerrar();
-            elegir({
-              imagen: item.path,
-              srcset: cfg.conSrcset ? variantesGaleria(item, mm.ancho) : null,
-              ancho: mm.ancho,
-              alto: mm.alto
-            });
+          var r = miniaturas[item.path];
+          if (!r || !r.url) { return; }
+          var cfg = ACTUAL;
+          if (!cfg) { return; }
+          var elegir = cfg.alElegir;
+          cerrar();
+          elegir({
+            imagen: item.path,
+            srcset: cfg.conSrcset ? variantesGaleria(item, r.ancho) : null,
+            ancho: r.ancho,
+            alto: r.alto
           });
         });
         zona.appendChild(boton);
-        miniaturaDe(item).then(function (url) { img.src = url; }).catch(function () { img.src = ""; });
+        observarMiniatura(boton, item);
       });
     }).catch(function (err) {
       zona.innerHTML = "";
@@ -200,6 +265,20 @@
   /* Procesa el archivo elegido y deja todo listo para subir */
   function procesarPendiente(archivo) {
     var config = ACTUAL;
+    /* Límite de tamaño: antes solo filtraba la galería y la subida no
+       tenía control (una foto de 40 MB colapsaba el navegador). */
+    if (!archivo) { return; }
+    if (archivo.size > TAMANO_MAX) {
+      alerta("La imagen pesa " + Math.round(archivo.size / 1024 / 1024) +
+        " MB. El máximo es " + Math.round(TAMANO_MAX / 1024 / 1024) +
+        " MB. Bajala o recortala antes de subirla.");
+      return;
+    }
+    var extArchivo = (archivo.name.split(".").pop() || "").toLowerCase();
+    if (EXTENSIONES.indexOf(extArchivo) === -1) {
+      alerta("Ese tipo de archivo no se puede subir. Usá JPG, PNG, WEBP o SVG.");
+      return;
+    }
     cargarImagen(archivo).then(function (r) {
       var anchoMax = config.tipo === "logo" ? 600 : 1600;
       var formato = config.tipo === "logo" ? "image/png" : "image/jpeg";
@@ -248,6 +327,11 @@
   /* Un solo commit por imagen: blobs + árbol + commit + ref */
   function subirPendiente() {
     if (!pendiente || !ACTUAL) { return; }
+    /* Se capturan los datos acá: si el cliente cierra el modal mientras se
+       sube, "pendiente" y "ACTUAL" se vacían y el código reventaba con
+       "Cannot read properties of null" al final de la subida. */
+    var datos = pendiente;
+    var cfg = ACTUAL;
     var boton = document.getElementById("media-subir-btn");
     boton.disabled = true;
     boton.textContent = "Subiendo…";
@@ -255,7 +339,7 @@
     var shas = [];
     var paso = Promise.resolve();
 
-    pendiente.archivos.forEach(function (arch) {
+    datos.archivos.forEach(function (arch) {
       paso = paso.then(function () {
         return apiFetch("/repos/" + REPO + "/git/blobs", {
           method: "POST",
@@ -297,7 +381,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            message: "Editor visual: subir imagen " + pendiente.nombre,
+            message: "Editor visual: subir imagen " + datos.nombre,
             tree: tree.sha,
             parents: [base]
           })
@@ -317,29 +401,46 @@
         listaGaleria = null;
         miniaturas = {};
         var resultado = {
-          imagen: pendiente.archivos[0].ruta,
-          srcset: pendiente.srcset,
-          ancho: pendiente.ancho,
-          alto: pendiente.alto
+          imagen: datos.archivos[0].ruta,
+          srcset: datos.srcset,
+          ancho: datos.ancho,
+          alto: datos.alto
         };
         /* Copia local para la vista previa: el archivo ya está en GitHub
            pero todavía no en este disco — el editor la inyecta en la
            miniatura para verla al instante. */
         window.BQ_SUBIDAS = window.BQ_SUBIDAS || {};
-        window.BQ_SUBIDAS[resultado.imagen] = pendiente.prevista;
-        var elegir = ACTUAL.alElegir;
+        window.BQ_SUBIDAS[resultado.imagen] = datos.prevista;
+        /* Si el modal se cerró durante la subida, la imagen queda subida
+           pero no se aplica a ningún campo: se avisa para que la clienta
+           sepa que puede elegirla desde la galería. */
+        var seguir = document.getElementById("modal-imagenes").hidden;
         cerrar();
-        elegir(resultado);
+        if (seguir) {
+          alerta("La imagen se subió (" + datos.nombre + "), pero el selector se había cerrado: " +
+            "abrí de nuevo el campo y elegila desde la galería.");
+          return;
+        }
+        if (cfg && cfg.alElegir) { cfg.alElegir(resultado); }
       })
       .catch(function (err) {
-        boton.disabled = false;
-        boton.textContent = "Subir y usar";
+        var b = document.getElementById("media-subir-btn");
+        if (b) {
+          b.disabled = false;
+          b.textContent = "Subir y usar";
+        }
         alerta(err.message);
       });
   }
 
   function alerta(texto) {
-    /* Aviso simple dentro del modal de imágenes */
+    /* Si el modal está cerrado, el aviso no se vería: se muestra como
+       notificación para que el error nunca se pierda en silencio. */
+    var modal = document.getElementById("modal-imagenes");
+    if (modal && modal.hidden) {
+      if (window.BQToast) { window.BQToast(texto, "error", 6000); }
+      return;
+    }
     var aviso = document.getElementById("media-aviso");
     if (!aviso) {
       aviso = document.createElement("p");
@@ -371,12 +472,28 @@
   function cerrar() {
     pendiente = null;
     ACTUAL = null;
-    document.getElementById("modal-imagenes").hidden = true;
+    if (window.BQModales && window.BQModales.cerrar) {
+      window.BQModales.cerrar(document.getElementById("modal-imagenes"));
+    } else {
+      document.getElementById("modal-imagenes").hidden = true;
+    }
     document.getElementById("media-prevista").hidden = true;
     document.getElementById("media-archivo").value = "";
     var b = document.getElementById("media-subir-btn");
     b.disabled = false;
     b.textContent = "Subir y usar";
+    /* Se libera la galería: las miniaturas generadas se quedan en memoria
+       si no, y el observador sigue mirando nodos que ya no existen. */
+    if (observador) { observador.disconnect(); observador = null; }
+    Object.keys(miniaturas).forEach(function (ruta) {
+      var m = miniaturas[ruta];
+      if (m && m.usaOriginal && m.url && m.url.indexOf("blob:") === 0) {
+        URL.revokeObjectURL(m.url);
+      }
+    });
+    miniaturas = {};
+    var zona = document.getElementById("media-galeria");
+    if (zona) { zona.innerHTML = ""; }
   }
 
   var conectado = false;
@@ -409,7 +526,11 @@
       var b = document.getElementById("media-subir-btn");
       b.disabled = false;
       b.textContent = "Subir y usar";
-      document.getElementById("modal-imagenes").hidden = false;
+      if (window.BQModales && window.BQModales.abrir) {
+        window.BQModales.abrir(document.getElementById("modal-imagenes"));
+      } else {
+        document.getElementById("modal-imagenes").hidden = false;
+      }
       activarPestana("galeria");
     },
     cerrar: cerrar

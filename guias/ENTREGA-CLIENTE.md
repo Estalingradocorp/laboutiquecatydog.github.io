@@ -1,8 +1,56 @@
 # Guía de entrega — cómo pasarle el proyecto al cliente
 
+> Documentación interna: **no se publica** en el sitio (excluida por `_config.yml`).
+
 Respondé las preguntas clave antes de la entrega. Regla general que lo explica todo:
 
 > **El cliente NO necesita instalar NADA en su computadora.** Su página y su panel viven en internet (GitHub Pages + GitHub + Cloudflare) y se usan desde el navegador, igual que Gmail o WhatsApp Web. La copia local del proyecto es solo para desarrolladores.
+
+---
+
+## 0. Lo que hay que hacer ANTES de la entrega (35 minutos)
+
+Hoy la **OAuth App** y el **Worker de login** son cuentas del **desarrollador**, no del cliente. Funcionan, pero dejan una dependencia: si mañana el desarrollador deja de pagar Cloudflare o cierra la cuenta, el cliente se queda sin panel. Se arregla con 3 pasos, en este orden.
+
+### Paso 1 — Crear la OAuth App en la cuenta del cliente
+
+1. Entrar a la cuenta de GitHub **del cliente** → Settings → Developer settings → OAuth Apps → **New OAuth App**.
+2. Application name: `La Boutique Cat & Dog` · Homepage URL: `https://laboutiquecatydog.github.io/` · Authorization callback URL: `https://<SU-WORKER>.workers.dev/callback`.
+3. GitHub muestra un **Client ID** y un **Client Secret**. Guardarlos: el Secret se muestra **una sola vez**.
+
+### Paso 2 — Crear el Worker en la cuenta de Cloudflare del cliente
+
+1. Entrar a la cuenta de Cloudflare **del cliente** → Workers & Pages → Create → Worker → nombre `sveltia-cms-auth` (o el que se prefiera).
+2. Pegar el contenido de `tools/worker-editor.js` **actualizado** (ya trae el scope reducido a `public_repo` y los mensajes de error claros).
+3. Edit → Deploy.
+4. Editar las **variables de entorno** del Worker (Settings → Variables and Secrets):
+   - `CLIENT_ID` = el Client ID del paso 1
+   - `CLIENT_SECRET` = el Client Secret del paso 1
+   - `ORIGIN` = `https://laboutiquecatydog.github.io`
+   - `ALLOWED_REPOS` = `laboutiquecatydog/laboutiquecatydog.github.io`
+
+### Paso 3 — Apuntar el panel al Worker nuevo
+
+En `admin/editor.js`, línea 19, cambiar una sola constante:
+
+```js
+var WORKER_BASE = "https://<EL-WORKER-DEL-CLIENTE>.workers.dev";
+```
+
+Después: commit → push → esperar 1 minuto → probar el login con la cuenta del cliente.
+
+> **Verificación obligatoria:** iniciar sesión con una cuenta **sin** permiso de escritura en el repo tiene que ser rechazado con el mensaje "tu cuenta no tiene permiso para editar este sitio". Si esa cuenta puede entrar, algo quedó mal.
+
+### Plan B — si el cliente no quiere administrar Cloudflare
+
+Se deja el Worker del desarrollador (funciona) y se le da al cliente un **token personal (PAT) de alcance fino** como alternativa de login:
+
+1. GitHub del cliente → Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate.
+2. **Only select repositories** → marcar **únicamente** `laboutiquecatydog.github.io`.
+3. Permisos: **Contents → Read and write**. Nada más.
+4. Guardar el token en un gestor de contraseñas.
+
+Este PAT es más simple de usar pero **no se puede revocar desde el panel**: si se filtra, hay que ir a GitHub a borrarlo. El login por OAuth es mejor; el PAT es el plan B.
 
 ---
 
@@ -50,13 +98,25 @@ Como **respaldo físico** de entrega (buena práctica), NO como requisito. Graba
 
 ## 6. Checklist de la reunión de entrega
 
+### Antes de la reunión (técnico)
+
+- [ ] **Re-desplegar el Worker** con `tools/worker-editor.js` actualizado (scope `public_repo` + mensajes claros). Workers & Pages → `sveltia-cms-auth` → Edit code → pegar → Deploy.
+- [ ] **Trasladar la OAuth App y el Worker** a las cuentas del cliente (sección 0, pasos 1 a 3) — o, si no, dejar el Worker del desarrollador y entregar un PAT de alcance fino como plan B.
+- [ ] Push a producción y **verificar los 404** de la documentación interna: `/BITACORA.md`, `/README.md`, `/guias/INFORME-SEGURIDAD.html`, `/tools/worker-editor.js` y `/preview.cmd` deben dar **404**.
+- [ ] Verificar que dan **200**: `/privacidad.html`, `/404.html`, `/manifest.json`.
+- [ ] Verificar que la rama `main` está protegida (Settings → Branches → `main` → "Branch protection rule" activa).
+- [ ] Probar el login con una cuenta **sin** permiso de escritura → debe rechazarla.
+
+### En la reunión (con el cliente)
+
 - [ ] Entregar credenciales (sobre cerrado o gestor de contraseñas) y verificar que el cliente **inicia sesión él mismo** desde su propio celu.
 - [ ] Activar 2FA juntos y guardar los códigos de recuperación.
 - [ ] Guardar el marcador del panel en el celu del cliente.
 - [ ] Practicar con él/ella un cambio real (un texto + una foto) y publicarlo.
 - [ ] Mostrar el botón **«?»** del panel y regalarle el `guias/` impreso o en PDF.
 - [ ] Dejar el pendrive de respaldo.
-- [ ] Aclarar el plan de soporte acordado (ej.: ajustes incluidos por 30 días).
+- [ ] Aclarar el plan de soporte acordado (ej.: ajustes incluidos por 30 dias).
+- [ ] Explicar el modelo de seguridad en 30 segundos: "la web es pública (se puede ver el código), lo único protegido es **quién puede publicar**, y eso lo decide GitHub con tu cuenta".
 
 ## 7. Qué hacer si mañana te llamás "desaparecido"
 

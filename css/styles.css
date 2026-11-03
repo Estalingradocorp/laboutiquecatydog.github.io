@@ -1094,3 +1094,47 @@ html.js .hero-title.is-typed .type-caret {
   html.js .hero-title .type-caret { display: none !important; }
 }
 
+
+/* -------------------- Sin JavaScript y páginas estáticas ----------------- */
+/* Si el visitante no tiene JavaScript, el catálogo no se puede generar:
+   se le muestra al menos el contacto, que es lo que necesita. */
+.noscript-aviso {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: clamp(48px, 8vw, 96px) 24px;
+  text-align: center;
+}
+.noscript-aviso h1 { margin: 8px 0 16px; }
+.noscript-aviso ul {
+  list-style: none;
+  margin: 28px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
+.noscript-aviso .btn { display: inline-block; }
+
+.pagina-estatica { min-height: 100vh; min-height: 100dvh; }
+.estatico-card {
+  max-width: 760px;
+  padding-top: clamp(48px, 8vw, 96px);
+  padding-bottom: clamp(48px, 8vw, 96px);
+}
+.estatico-card h1 { margin: 8px 0 16px; }
+.estatico-card h2 { margin: 32px 0 10px; font-size: 1.15rem; }
+.estatico-card p { margin: 0 0 14px; }
+.estatico-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+.estatico-nota {
+  margin-top: 36px;
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+.footer-legal { margin: 0; }
+.footer-legal a { color: inherit; opacity: 0.8; }
+.footer-legal a:hover { opacity: 1; text-decoration: underline; }

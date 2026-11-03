@@ -198,26 +198,17 @@
     }
     if (cols[1]) {
       S(cols[1].querySelector("h3"), ["footer", "contactoTitulo"]);
-      var pos = 0;
-      Array.prototype.forEach.call(cols[1].querySelectorAll("ul li"), function (li) {
-        var mail = li.querySelector('a[href^="mailto:"]');
-        if (mail) { S(mail, ["negocio", "email"]); return; }
-        var wa = li.querySelector("a[data-wa-link]");
-        if (wa) { S(wa, ["footer", "whatsappTexto"]); return; }
-        var span = li.querySelector("span");
-        if (!span) { return; }
-        if (pos === 0) { S(span, ["negocio", "address"]); }
-        else if (pos === 1) { S(span, ["negocio", "hours"]); }
-        pos += 1;
+      /* Los datos del local se mapean por clave (data-sitio), no por
+         posición: así, si falta el teléfono o cambia el orden, cada texto
+         sigue editando el campo que le corresponde. */
+      Array.prototype.forEach.call(cols[1].querySelectorAll("[data-sitio]"), function (el) {
+        var ruta = (el.getAttribute("data-sitio") || "").split(".");
+        if (ruta.length < 2) { return; }
+        S(el, ruta);
       });
     }
     if (cols[2]) {
       S(cols[2].querySelector("h3"), ["footer", "seguinosTitulo"]);
-      var orden = (sitio && sitio.footer && sitio.footer.ordenSocial) || [];
-      var spans = cols[2].querySelectorAll(".social-list li a span");
-      Array.prototype.forEach.call(spans, function (sp, i) {
-        if (orden[i]) { S(sp, ["redes", orden[i], "etiqueta"]); }
-      });
     }
     /* El copyright comparte <p> con el año: se edita el último nodo de
        texto (el que sigue al <span data-year>). */
@@ -536,6 +527,11 @@
     },
 
     /* Cierra la edición en curso sin escribir en el modelo */
-    cancelar: cancelarEdicion
+    cancelar: cancelarEdicion,
+
+    /* ¿Hay una edición en curso? El re-render del panel consulta esto:
+       si el cliente está escribiendo, NO se reemplaza el DOM (eso le
+       cortaba la edición y perdía lo que terminaba de escribir). */
+    hayEdicion: function () { return !!EDIT.el; }
   };
 })();

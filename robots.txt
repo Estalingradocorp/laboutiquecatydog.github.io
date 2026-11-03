@@ -7,5 +7,12 @@ Disallow: /graphify-out/
 Disallow: /_backup/
 Disallow: /*.cmd$
 
+# Documentación interna del proyecto (además de estar excluidos de la
+# publicación, se bloquea su indexación por si alguien los sirve por otra vía)
+Disallow: /BITACORA
+Disallow: /README
+Disallow: /guias/
+Disallow: /tools/
+
 # Sitemap
 Sitemap: https://laboutiquecatydog.github.io/sitemap.xml

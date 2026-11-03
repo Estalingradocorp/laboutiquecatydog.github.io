@@ -52,14 +52,19 @@ Una sola página con navegación por anclas. Los bloques y su orden se definen e
 ```
 la-boutique-cat-y-dog/
 ├── index.html                  # Esqueleto: <head> (SEO, fuentes, JSON-LD) y contenedores
-├── robots.txt                  # Qué puede indexar Google (excluye /admin/)
+├── 404.html                    # Página de error 404 (GitHub Pages la sirve automáticamente)
+├── privacidad.html             # Aviso de privacidad (Ley 25.326) — sin cookies ni analítica
+├── manifest.json               # Datos de la app web (icono, colores, pantalla de inicio)
+├── _config.yml                 # Config de Jekyll: EXCLUYE la documentación interna de la publicación
+├── robots.txt                  # Qué puede indexar Google (excluye /admin/ y la doc interna)
 ├── sitemap.xml                 # Mapa del sitio (se envía en Search Console)
 ├── preview.cmd                 # Doble clic: servidor local + abre el SITIO en el navegador
 ├── "Abrir panel (local).cmd"   # Doble clic: servidor local + abre el PANEL VISUAL
 ├── README.md                   # Este archivo
 ├── BITACORA.md                 # Registro cronológico del proyecto
 ├── guias/
-│   └── INFORME-SEGURIDAD.md    # Auditoría de seguridad (presentable al cliente)
+│   ├── INFORME-SEGURIDAD.md    # Auditoría de seguridad (presentable al cliente)
+│   └── ENTREGA-CLIENTE.md      # Guía de entrega + traspaso de cuentas al cliente
 ├── css/
 │   └── styles.css              # Todos los estilos (variables, layout, componentes)
 ├── js/
@@ -85,6 +90,8 @@ la-boutique-cat-y-dog/
 ```
 
 > **Excluido del repo** (ver `.gitignore`): `Contenido Imagenes/` (26 MB de imágenes originales; las optimizadas ya están en `assets/img/`) y `_backup/` (copias de seguridad históricas de etapas previas).
+
+> **Excluido de la publicación web** (ver `_config.yml`): `README.md`, `BITACORA.md`, `guias/`, `tools/` y los `*.cmd`. En producción esas rutas devuelven **404** y además están bloqueadas en `robots.txt`.
 
 ---
 

@@ -8,6 +8,34 @@
 
   var config = {};
 
+  /* ---------------------- Listeners globales sin duplicar --------------- */
+  /* El panel visual re-renderiza esta página muchas veces (cada tecla en
+     el formulario). Si cada pasada colgara un listener nuevo de document
+     o window, se acumularían: fuga de memoria y timers de carruseles
+     huérfanos que siguen corriendo. Este puente instala UN listener por
+     clave y siempre ejecuta la función más reciente (que apunta al DOM
+     actual). */
+  var puentesGlobales = {};
+
+  function oyenteGlobal(clave, objetivo, evento, fn, opciones) {
+    var p = puentesGlobales[clave];
+    if (!p) {
+      p = puentesGlobales[clave] = { objetivo: objetivo, evento: evento, opciones: opciones, fn: fn };
+      p.handler = function (ev) { p.fn(ev); };
+      objetivo.addEventListener(evento, p.handler, opciones);
+      return;
+    }
+    if (p.objetivo !== objetivo || p.evento !== evento) {
+      p.objetivo.removeEventListener(p.evento, p.handler, p.opciones);
+      p.objetivo = objetivo;
+      p.evento = evento;
+      p.opciones = opciones;
+      p.handler = function (ev) { p.fn(ev); };
+      objetivo.addEventListener(evento, p.handler, opciones);
+    }
+    p.fn = fn;
+  }
+
   function isConfigured(value) {
     return typeof value === "string" && value.trim() !== "";
   }
@@ -98,8 +126,35 @@
      y teclado. Respeta "prefers-reduced-motion" y reinicia el temporizador
      tras una interacción manual. */
   function setupCarousels() {
-    Array.prototype.forEach.call(document.querySelectorAll("[data-carousel]"), initCarousel);
+    Array.prototype.forEach.call(document.querySelectorAll("[data-carousel]"), function (root) {
+      /* Idempotente: si el panel vuelve a reiniciar la vista previa sin
+         reemplazar el DOM, el carrusel no se inicializa dos veces (si no,
+         se duplicaban los puntitos y los listeners). */
+      if (root.__bqIniciado) { return; }
+      root.__bqIniciado = true;
+      initCarousel(root);
+    });
   }
+
+  /* Carruseles con autoplay registrados. Un único listener de
+     visibilitychange los maneja a todos, y los que ya no están en el
+     documento se descartan (cortando su timer). */
+  var carruselesAutoplay = [];
+
+  function registrarCarruselAutoplay(c) {
+    carruselesAutoplay = carruselesAutoplay.filter(function (x) {
+      if (x.root.isConnected) { return true; }
+      x.stop();
+      return false;
+    });
+    carruselesAutoplay.push(c);
+  }
+
+  oyenteGlobal("carousel-visibility", document, "visibilitychange", function () {
+    carruselesAutoplay.forEach(function (c) {
+      if (document.hidden) { c.stop(); } else { c.start(); }
+    });
+  });
 
   function initCarousel(root) {
     var slides = Array.prototype.slice.call(root.querySelectorAll("[data-slide]"));
@@ -217,9 +272,10 @@
       root.addEventListener("focusin", stop);
       root.addEventListener("focusout", start);
 
-      document.addEventListener("visibilitychange", function () {
-        if (document.hidden) stop(); else start();
-      });
+      /* Registro con limpieza: el panel re-renderiza la vista previa y el
+         carrusel viejo queda huérfano. Se corta su timer para que no siga
+         corriendo solo. */
+      registrarCarruselAutoplay({ root: root, start: start, stop: stop });
     }
 
     render();
@@ -266,11 +322,11 @@
       link.addEventListener("click", close);
     });
 
-    document.addEventListener("keydown", function (event) {
+    oyenteGlobal("menu-key", document, "keydown", function (event) {
       if (event.key === "Escape") close();
     });
 
-    window.addEventListener("resize", function () {
+    oyenteGlobal("menu-resize", window, "resize", function () {
       if (window.innerWidth > 860) close();
     });
   }
@@ -283,7 +339,7 @@
       header.classList.toggle("is-scrolled", window.scrollY > 10);
     }
     update();
-    window.addEventListener("scroll", update, { passive: true });
+    oyenteGlobal("header-scroll", window, "scroll", update, { passive: true });
   }
 
   /* ------------------- Enlace activo según la sección ------------------- */
@@ -661,8 +717,8 @@
       if (!ticking) { ticking = true; window.requestAnimationFrame(update); }
     }
     update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
+    oyenteGlobal("progress-scroll", window, "scroll", onScroll, { passive: true });
+    oyenteGlobal("progress-resize", window, "resize", onScroll, { passive: true });
   }
 
   /* ------------------------------- Datos -------------------------------- */

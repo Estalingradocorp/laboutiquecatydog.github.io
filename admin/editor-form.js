@@ -90,7 +90,7 @@
       };
     }
     if (clave === "fotos") {
-      return { foto: media.imagen, alt: "" };
+      return { foto: media.imagen, alt: "", ancho: media.ancho || 0, alto: media.alto || 0 };
     }
     if (clave === "productos") {
       return {
@@ -100,7 +100,7 @@
         mascotas: "perro gato",
         precio: "",
         mensajeWhatsApp: "",
-        fotos: [{ foto: media.imagen, alt: "" }]
+        fotos: [{ foto: media.imagen, alt: "", ancho: media.ancho || 0, alto: media.alto || 0 }]
       };
     }
     return {};
@@ -222,6 +222,15 @@
   }
 
   /* ------------------------ Campo simple ---------------------------------- */
+  var CONTADOR_CAMPOS = 0;
+
+  /* Identificador único para cada control, para asociar la etiqueta con
+     su campo (sin "for" el lector de pantalla no anuncia la etiqueta). */
+  function idCampo() {
+    CONTADOR_CAMPOS += 1;
+    return "bq-campo-" + CONTADOR_CAMPOS;
+  }
+
   function crearCampo(clave, valor, raiz, ruta, alCambiar, contexto) {
     var regla = REGLAS[clave] || {};
     var tipo = regla.tipo || "input";
@@ -230,7 +239,7 @@
 
     /* Solo lectura (p. ej. el id/ancla) */
     if (tipo === "solo-lectura") {
-      var rot = crear("label");
+      var rot = crear("span");
       rot.className = "campo-etiqueta";
       rot.textContent = etiquetaDe(clave);
       caja.appendChild(rot);
@@ -322,6 +331,10 @@
     control.addEventListener("input", alTocar);
     control.addEventListener("change", alTocar);
 
+    /* La etiqueta apunta a su control */
+    control.id = idCampo();
+    rotulo.htmlFor = control.id;
+
     caja.appendChild(control);
 
     var pista = pistaDe(clave, contexto);
@@ -341,7 +354,9 @@
     var caja = crear("div");
     caja.className = "campo campo-imagen";
 
-    var rotulo = crear("label");
+    /* No es un <label>: acá no hay un control de formulario al que
+       apuntar, es el título del botón de elegir imagen. */
+    var rotulo = crear("span");
     rotulo.className = "campo-etiqueta";
     rotulo.textContent = config.titulo;
     caja.appendChild(rotulo);

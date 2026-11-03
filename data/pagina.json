@@ -93,11 +93,15 @@
           "fotos": [
             {
               "foto": "assets/img/alimento-1.jpg",
-              "alt": "Alimento y nutrición para perros y gatos"
+              "alt": "Alimento y nutrición para perros y gatos",
+              "ancho": 900,
+              "alto": 415
             },
             {
               "foto": "assets/img/alimento-2.jpg",
-              "alt": "Bolsas de alimento balanceado para perros Fawna"
+              "alt": "Bolsas de alimento balanceado para perros Fawna",
+              "ancho": 675,
+              "alto": 900
             }
           ]
         },
@@ -111,15 +115,21 @@
           "fotos": [
             {
               "foto": "assets/img/camas-1.jpg",
-              "alt": "Cama fucsia para mascotas"
+              "alt": "Cama fucsia para mascotas",
+              "ancho": 900,
+              "alto": 415
             },
             {
               "foto": "assets/img/camas-2.jpg",
-              "alt": "Cama para mascotas"
+              "alt": "Cama para mascotas",
+              "ancho": 687,
+              "alto": 900
             },
             {
               "foto": "assets/img/camas-3.jpg",
-              "alt": "Cama y rincón de descanso para mascotas"
+              "alt": "Cama y rincón de descanso para mascotas",
+              "ancho": 688,
+              "alto": 900
             }
           ]
         },
@@ -133,11 +143,15 @@
           "fotos": [
             {
               "foto": "assets/img/transporte-1.jpg",
-              "alt": "Mochila transportadora para gatos con ventana burbuja"
+              "alt": "Mochila transportadora para gatos con ventana burbuja",
+              "ancho": 675,
+              "alto": 900
             },
             {
               "foto": "assets/img/transporte-2.jpg",
-              "alt": "Mochila transportadora con ventana burbuja, vista lateral"
+              "alt": "Mochila transportadora con ventana burbuja, vista lateral",
+              "ancho": 675,
+              "alto": 900
             }
           ]
         },
@@ -151,11 +165,15 @@
           "fotos": [
             {
               "foto": "assets/img/accesorios-1.jpg",
-              "alt": "Accesorios y productos para mascotas"
+              "alt": "Accesorios y productos para mascotas",
+              "ancho": 900,
+              "alto": 415
             },
             {
               "foto": "assets/img/accesorios-2.jpg",
-              "alt": "Accesorios para mascotas"
+              "alt": "Accesorios para mascotas",
+              "ancho": 900,
+              "alto": 900
             }
           ]
         },
@@ -169,7 +187,9 @@
           "fotos": [
             {
               "foto": "assets/img/juguetes-1.jpg",
-              "alt": "Juguetes GiGwi para perros"
+              "alt": "Juguetes GiGwi para perros",
+              "ancho": 512,
+              "alto": 900
             }
           ]
         }

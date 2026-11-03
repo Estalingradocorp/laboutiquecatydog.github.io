@@ -31,7 +31,14 @@ const supportedProviders = ['github', 'gitlab'];
  */
 const providerScopes = {
   github: {
-    default: 'repo,user',
+    // [EDITOR] El repositorio del sitio es PÚBLICO (GitHub Pages lo exige),
+    // así que `public_repo` alcanza para leer y escribir su contenido.
+    // Se evita pedir `repo`, que además daría acceso a TODOS los repos
+    // privados de la cuenta: un token con ese alcance, si se filtra, abre
+    // puertas que no tiene nada que ver con este proyecto.
+    // Si algún día el repositorio pasara a ser privado, habría que volver
+    // a pedir `repo` (sigue permitido en `allowed`).
+    default: 'public_repo,user',
     separator: ',',
     allowed: ['repo', 'public_repo', 'user', 'read:user', 'user:email'],
   },

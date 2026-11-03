@@ -1,0 +1,25 @@
+{
+  "name": "La Boutique Cat & Dog",
+  "short_name": "La Boutique",
+  "description": "Tienda de mascotas en Salta: alimento, accesorios y productos de cuidado para perros y gatos.",
+  "lang": "es-AR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#121212",
+  "icons": [
+    {
+      "src": "assets/img/logo.png",
+      "sizes": "300x300",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/img/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

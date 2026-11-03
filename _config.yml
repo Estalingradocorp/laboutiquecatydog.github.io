@@ -1,0 +1,53 @@
+# Configuración de Jekyll para GitHub Pages.
+#
+# Motivo: el repositorio es PÚBLICO (GitHub Pages en el plan gratuito lo
+# exige) y sin esta configuración Jekyll publicaba la documentación interna
+# (bitácora, README, guías, código del Worker y scripts .cmd) con acceso
+# directo, incluyendo las notas internas y el código del login.
+#
+# Con `exclude` esos archivos no se copian al sitio: pasan a responder 404
+# para cualquiera, pero siguen en el repositorio para el desarrollador y en
+# la copia de entrega.
+#
+# Verificación tras cada push (deben dar 404):
+#   /README.md  /BITACORA.md  /guias/INFORME-SEGURIDAD.html
+#   /tools/worker-editor.js  /preview.cmd
+#
+# Y deben dar 200: /  /admin/editor.html  /privacidad.html  /404.html
+
+exclude:
+  # --- Documentación interna ---
+  - README.md
+  - BITACORA.md
+  - guias
+  # --- Herramientas de desarrollo (servidor local, código del Worker) ---
+  - tools
+  # --- Scripts de Windows del desarrollador ---
+  - "*.cmd"
+  # --- Archivos de configuración del repositorio ---
+  - _config.yml
+  - .gitignore
+  # --- Defaults de Jekyll (se repiten para no perderlos al reemplazar
+  #     la lista por defecto) ---
+  - .sass-cache
+  - .jekyll-cache
+  - gemfiles
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
+
+# Se mantienen los valores por defecto de GitHub Pages para que, si alguna
+# vez se publica un .md, se renderice igual que antes.
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  input: GFM
+  hard_wrap: false
+  syntax_highlighter: rouge
+
+# El sitio es estático: no hay plugins que cargar.
+plugins: []
