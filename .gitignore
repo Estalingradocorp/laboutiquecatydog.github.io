@@ -12,6 +12,9 @@ graphify-out/
 Thumbs.db
 desktop.ini
 
+# Estado local de herramientas (wrangler/Cloudflare)
+.wrangler/
+
 # Editores / entorno
 .vscode/
 .idea/

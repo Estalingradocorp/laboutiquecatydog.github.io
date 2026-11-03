@@ -283,14 +283,16 @@ Para actualizar, subí los cambios a `main` y Pages reconstruye automáticamente
 
 ## Seguridad
 
-Auditoría completa (24/10/2026) con pruebas automáticas de vulnerabilidades — ver el informe detallado en **`guias/INFORME-SEGURIDAD.md`**. Síntesis:
+Auditoría completa (24/10/2026 y 3/11/2026) con pruebas automáticas de vulnerabilidades — ver el informe detallado en **`guias/INFORME-SEGURIDAD.md`**. Síntesis:
 
 - **XSS por contenido**: todos los textos del JSON se escapan al renderizar; los enlaces editables se sanitizan (`hrefSeguro`: solo `#`, rutas internas, `https:`, `mailto:`, `tel:` — `javascript:` queda en `#`). Probado con batería de 25+ payloads en todos los campos: 0 ejecuciones.
 - **CSP activa** en sitio y panel (meta tag): bloquea scripts inline/externos no autorizados manteniendo todo funcional (verificado: 0 violaciones en consola).
 - **Token de sesión**: OAuth por Worker de Cloudflare, vive solo en `sessionStorage`, nunca en la URL ni en localStorage, y se envía exclusivamente a `api.github.com` (verificado con instrumentación de red).
 - **Servidor local**: blindado contra path traversal (10 variantes probadas, todas 403) + `nosniff`; solo escucha en 127.0.0.1.
 - **Login**: contraseñas nunca tocan el sitio (GitHub OAuth); dominios validados en el Worker; cookies del flujo `HttpOnly` + `SameSite=Lax` + `Secure`.
-- **Repositorio privado**: solo colaboradores pueden leer/escribir; cada cambio es un commit firmado con autor.
+- **Alcance del OAuth reducido**: el Worker desplegado pide `public_repo` + `user` (verificado el 3/11/2026), no `repo` — el cliente no autoriza el acceso a sus repositorios privados.
+- **Repositorio público**: el código, los textos y el historial **son públicos** (GitHub Pages en plan gratuito lo exige). Lo único protegido es **quién puede publicar**: el panel exige permiso `push` y GitHub rechaza la escritura de cualquier otra cuenta. Hoy hay dos cuentas con escritura: la del cliente (dueño) y la del desarrollador (colaborador, sin ser admin).
+- **Documentación interna oculta**: bitácora, README, guías, código del Worker y scripts `.cmd` están excluidos de la publicación (`_config.yml`) y bloqueados en `robots.txt` → responden **404** en producción.
 - Recomendación para el cliente: **2FA en la cuenta de GitHub** (la única llave del negocio).
 
 ---
@@ -307,31 +309,31 @@ Auditoría completa (24/10/2026) con pruebas automáticas de vulnerabilidades �
 
 ## Estado del proyecto
 
-Sitio publicado en GitHub Pages con el contenido en JSON. **El rediseño de la landing y todo el panel visual (W1–W4) están terminados en local** y esperan el push final (W5).
+Sitio publicado en GitHub Pages con el contenido en JSON. **Todo el rediseño de la landing y el panel visual (W1–W5) están en producción**, y el 3/11/2026 se publicó una auditoría de seguridad/UX con sus correcciones (commit `1006ac6`).
 
 | Etapa | Cambio | Estado |
 |---|---|---|
 | Portada / responsive / CSS | Hero en dos columnas, ajustes móviles, tokens de diseño | Publicado |
 | **G1 — contenido a JSON** | Todo el contenido pasó a `data/*.json` con `js/render.js` (verificado A/B) | Publicado |
 | **G2 — panel Sveltia** | `/admin/` con login GitHub vía Cloudflare Worker; campos de texto opcionales (`required: false`) | Publicado |
-| **G3 — rediseño estético** | Typewriter del título (con watchdog), reveal escalonado, barra de progreso, SEO dinámico desde JSON, sección de productos rediseñada | Local (pendiente de push) |
-| **W1 — editor visual** | Login, lista de secciones (reordenar/ocultar/duplicar/eliminar/agregar), vista previa, publicación por commits; Worker extendido (`client=editor`) | Local + Worker ya desplegado |
-| **W2 — textos y datos** | Formularios por campo + pestaña «Datos del local» (`sitio.json`), publicación de ambos archivos | Local |
-| **W2.5 — edición en la vista** | Edición in situ sobre la vista previa (`contenteditable`), re-render con los datos del editor, flag `oculto` respetado por el render | Local |
-| **W3 — imágenes** | Galería del repo + subida optimizada (1600/900, JPEG 82 %), alta/baja/reorden de productos y fotos, cambio de logo | Local |
-| **W4a — catálogo y control** | Paginación automática del catálogo (6 por página, filtros coordinados), quitar producto desde la vista previa | Local |
-| **W4b — deshacer y conflictos** | Deshacer/rehacer (historial de instantáneas, `Ctrl+Z`/`Ctrl+Y` + botones), chip que refleja la diferencia real con lo publicado, chequeo de conflictos pre-publicación (SHA en GitHub vs. local) con opciones claras | Local |
-| **W4c — seguridad total** | Flechas tipo Word (íconos ↶ ↷), atajos activos también dentro de la vista previa, e **Historial de versiones**: restaurar versiones publicadas desde el historial de commits (carga como borrador, deshacible) | Local |
-| **W5a — SEO/GEO técnico** | `robots.txt` + `sitemap.xml`, bloque **`seo`** editable desde el panel (título/descripción con pistas), JSON-LD con URLs absolutas + `url`/`logo`/`priceRange`/`@id` + **horarios leídos de los datos**, `og-image.jpg` 1200×630, textos con intención local (Salta) | Local |
-| **W5b — editor único** | **Sveltia retirado**: todo integrado en el editor visual (campos avanzados plegables, `id` editable con advertencia); `/admin/` redirige al editor; `config.yml` eliminado | Local |
-| **W5c — copias + robustez** | **Copias de seguridad** en el navegador (auto antes de publicar, manuales, descargar/subir archivo, restaurar como borrador); la vista previa refleja reordenar/ocultar/agregar en vivo; `.gitignore` con `graphify-out/` | Local |
-| **W5d — cierre** | Push general a producción, smoke test, guías de Search Console + Google Business Profile, guía del cliente | Pendiente |
+| **G3 — rediseño estético** | Typewriter del título (con watchdog), reveal escalonado, barra de progreso, SEO dinámico desde JSON, sección de productos rediseñada | Publicado |
+| **W1 — editor visual** | Login, lista de secciones (reordenar/ocultar/duplicar/eliminar/agregar), vista previa, publicación por commits; Worker extendido (`client=editor`) | Publicado + Worker desplegado |
+| **W2 — textos y datos** | Formularios por campo + pestaña «Datos del local» (`sitio.json`), publicación de ambos archivos | Publicado |
+| **W2.5 — edición en la vista** | Edición in situ sobre la vista previa (`contenteditable`), re-render con los datos del editor, flag `oculto` respetado por el render | Publicado |
+| **W3 — imágenes** | Galería del repo + subida optimizada (1600/900, JPEG 82 %), alta/baja/reorden de productos y fotos, cambio de logo | Publicado |
+| **W4a — catálogo y control** | Paginación automática del catálogo (6 por página, filtros coordinados), quitar producto desde la vista previa | Publicado |
+| **W4b — deshacer y conflictos** | Deshacer/rehacer (historial de instantáneas, `Ctrl+Z`/`Ctrl+Y` + botones), chip que refleja la diferencia real con lo publicado, chequeo de conflictos pre-publicación (SHA en GitHub vs. local) con opciones claras | Publicado |
+| **W4c — seguridad total** | Flechas tipo Word (íconos ↶ ↷), atajos activos también dentro de la vista previa, e **Historial de versiones**: restaurar versiones publicadas desde el historial de commits (carga como borrador, deshacible) | Publicado |
+| **W5a — SEO/GEO técnico** | `robots.txt` + `sitemap.xml`, bloque **`seo`** editable desde el panel (título/descripción con pistas), JSON-LD con URLs absolutas + `url`/`logo`/`priceRange`/`@id` + **horarios leídos de los datos**, `og-image.jpg` 1200×630, textos con intención local (Salta) | Publicado |
+| **W5b — editor único** | **Sveltia retirado**: todo integrado en el editor visual (campos avanzados plegables, `id` editable con advertencia); `/admin/` redirige al editor; `config.yml` eliminado | Publicado |
+| **W5c — copias + robustez** | **Copias de seguridad** en el navegador (auto antes de publicar, manuales, descargar/subir archivo, restaurar como borrador); la vista previa refleja reordenar/ocultar/agregar en vivo; `.gitignore` con `graphify-out/` | Publicado |
+| **W5d — cierre** | Push general a producción, smoke test, guías de Search Console + Google Business Profile, guía del cliente | Publicado |
+| **Auditoría 2026-11-03** | Seguridad (documentación interna ocultada), estabilidad (5 bugs del panel), UX (autoplay del hero, `noscript`, foco de modales, errores en español), imágenes optimizadas (−760 KB), `404.html` / `privacidad.html` / `manifest.json` | Publicado (`1006ac6`) |
 
 ---
 
 ## Pendientes / TODO
 
-- [ ] **W5d — cierre y publicación (con instrucción del cliente):** push general a producción (rediseño + editor + SEO), smoke test en la web pública.
 - [ ] **Search Console + Google Business Profile:** guías paso a paso para el cliente (verificación, envío de `sitemap.xml`, pedido de indexación, alta/reclamo de la ficha de Maps con NAP consistente). El cliente decidió dejarlo para después del push.
 - [ ] **Guía del cliente:** video o PDF corto con la rutina del panel (entrar → editar → publicar).
 - [ ] Verificar si los filtros comparten bien "Camas" y "Accesorios" (mapeo `mascotas` es supuesto).

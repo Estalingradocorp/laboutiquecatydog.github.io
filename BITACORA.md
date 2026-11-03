@@ -197,3 +197,35 @@ Decisión del desarrollador tras verlo en vivo: **las huellas decorativas se qui
 - Remoción limpia, sin dejar huérfanos: `js/paw-trail.js` eliminado del repo (queda en el historial de git por si algún día vuelve), script tag fuera de `index.html`, llamadas a `renderPawTrails` fuera de `main.js` (boot y `BQPreview.renderizar`), bloque CSS `.paw-trails` fuera de `styles.css`.
 - Campo **`huella` retirado de punta a punta**: eliminado de las 5 secciones de `data/pagina.json` y de las plantillas del editor; fuera de las `REGLAS` del formulario y agregado a `TECNICOS` (si un borrador viejo lo trae, no se muestra).
 - Documentación sincronizada: README (sección del componente eliminada, estructura, funcionalidades), guía de presentación (fuera la mención de "huellitas") y **guía de entrega ampliada**: aclaración explícita de que `preview.cmd` y `Abrir panel (local).cmd` son herramientas del DESARROLLADOR — el cliente nunca levanta localhost, su panel vive en internet.
+
+---
+
+## 2026-11-03 · Auditoría de seguridad/UX + control de acceso al panel
+
+### Auditoría completa y correcciones (commit `1006ac6`) [prod]
+
+Revisión de seguridad, estabilidad y UX del sitio y del panel. 25 hallazgos; los relevantes corregidos y verificados con 31 pruebas E2E (sitio + panel, 0 errores de JavaScript) y 8 contra producción.
+
+- **Seguridad**: la documentación interna (`README.md`, `BITACORA.md`, `guias/`, `tools/`, `preview.cmd`, `_config.yml`) **dejó de publicarse**. GitHub Pages corre Jekyll 3.10.0, que publicaba los `.md` como páginas; ahora están en el `exclude` de `_config.yml` y `robots.txt` los bloquea además. Se agregaron `404.html`, `privacidad.html` y `manifest.json`, y `robots.txt` con `Disallow` para `/admin/`.
+- **UX del panel**: el re-render de la vista ya no patea el scroll al tocar una foto; Escape cierra modales y el foco vuelve al botón de origen; la vista previa de "Datos del local" lleva al pie (`#contacto`); los errores de red se muestran en español según el código HTTP (401/403/404/409/422/429/5xx) en lugar de texto técnico; el pie de la web se edita por clave `data-sitio` (el teléfono del local ahora es editable); los `input file` son alcanzables por teclado; los mensajes al guardar usan el sistema de avisos global (`window.BQToast`) sin duplicar listeners.
+- **Sitio**: carrusel del hero con autoplay que respeta `prefers-reduced-motion`; `<noscript>` con H1, WhatsApp, dirección y horario; `preload` con `imagesizes` correctos; `width`/`height` en las 18 imágenes; `hrefSeguro` rechaza URLs `//`; límite de 8 MB y validación de tipo en la subida de imágenes; miniaturas livianas con `IntersectionObserver` y liberación de `objectURL`; imágenes re-codificadas con `sharp` (−760 KB) y 3 huérfanas borradas.
+- **Verificado en producción**: `/README.md`, `/BITACORA.md`, `/guias/*`, `/tools/*` → **404**; `/`, `/admin/editor.html`, `/privacidad.html`, `/404.html`, `/manifest.json` → **200**.
+
+### Control de acceso: quién puede publicar [prod]
+
+- El repositorio es **público** (lo exige GitHub Pages): lo único que se protege es **quién publica**.
+- El desarrollador pasó a ser **colaborador con escritura** (`push`, sin ser admin) del repo `laboutiquecatydog/laboutiquecatydog.github.io`. Antes el push salía con el token del cliente (403 con la cuenta del desarrollador) y ese token quedó guardado en el keyring de la máquina del desarrollador → **ya se quitó** (`gh auth logout`), el helper de git ahora usa la cuenta propia.
+- La rama `main` quedó protegida: sin force-push y sin borrado de rama; los pushes directos siguen permitidos (no se pide PR para publicar desde el panel).
+- Verificado que una cuenta **sin** permiso de escritura es rechazada por el panel con el mensaje "La cuenta @X no tiene permiso para editar este sitio", y que el token rechazado se borra de la sesión (4/4 pruebas propias).
+
+### Worker de login: scope reducido [worker]
+
+- El Worker desplegado seguía pidiendo `scope=repo,user`: al autorizar, GitHub mostraba al cliente **"acceso a todos sus repositorios (públicos y privados)"**. Como el repo del sitio es público, `public_repo` alcanza.
+- **Re-despliegue por API de Cloudflare** (2026-11-03) con `tools/worker-editor.js`, conservando los bindings (`keep_bindings`: `plain_text` + `secret_text`): `ALLOWED_DOMAINS`, `GITHUB_CLIENT_ID` y `GITHUB_CLIENT_SECRET` siguen intactos. Rollback guardado: el archivo del commit `213f7de` (el que estaba desplegado).
+- Verificado: el redirect a GitHub ahora pide `public_repo,user`; `/callback` canjea el código y devuelve 302 al panel; un dominio fuera de `ALLOWED_DOMAINS` se rechaza con 400 y mensaje en español.
+
+### Decisión de fondo: la llave del login se queda en la cuenta del desarrollador
+
+La **OAuth App** y el **Worker** son la "llave de la puerta" del panel, no el contenido: el token que obtiene el cliente es **de la cuenta del cliente**, que es la dueña del repo y la única que decide qué se publica. La llave se queda en la cuenta del desarrollador (decisión 2026-11-03) para que el cliente no tenga que administrar Cloudflare; el traspaso al cliente queda documentado en 3 pasos en `guias/ENTREGA-CLIENTE.md` (sección 0) por si algún día lo pide, y el **PAT de alcance fino** sigue siendo el plan B si el desarrollador dejara de dar mantenimiento.
+
+> Corrección de la guía de entrega: los nombres de las variables del Worker son `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` y `ALLOWED_DOMAINS` (la guía decía `CLIENT_ID`, `CLIENT_SECRET`, `ORIGIN` y `ALLOWED_REPOS`, que no existen).

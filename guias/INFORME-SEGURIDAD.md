@@ -24,12 +24,12 @@ En esta auditoría (la más completa, con 31 pruebas automatizadas en navegador 
 
 | Activo | Protección |
 |---|---|
-| **Escritura** del contenido | **Solo la cuenta con permiso de escritura** en GitHub (`laboutiquecatydog`) puede publicar: el panel verifica el permiso `push` contra la API de GitHub antes de abrirse, y GitHub rechaza cualquier escritura de otra cuenta. Cada cambio queda como commit con autor y fecha. |
+| **Escritura** del contenido | **Solo las cuentas con permiso de escritura** en GitHub pueden publicar: el panel verifica el permiso `push` contra la API de GitHub antes de abrirse, y GitHub rechaza cualquier escritura de otra cuenta. Hoy hay dos: la del cliente (dueño del repo) y la del desarrollador (colaborador). Cada cambio queda como commit con autor y fecha. |
 | **Lectura** del contenido | El repositorio de GitHub Pages es **público** (el plan gratuito de GitHub Pages lo exige): cualquiera puede ver el código fuente, los textos del sitio y el historial de commits. Esto **no** permite editar nada. Si en el futuro se quiere ocultar el código, hace falta un plan pago de GitHub o alojar el sitio en otro proveedor. |
 | **Rama `main`** | Protegida: **no se puede hacer force-push ni borrar la rama**. GitHub Pages publica desde `main`, así que nadie puede "romper" la web con un push forzado. |
 | Login del panel | OAuth oficial de GitHub (contraseñas nunca pasan por el sitio) + Worker de Cloudflare que valida el dominio y devuelve el token **solo al panel** (nunca en la barra de direcciones ni en cookies legibles) |
 | Token de sesión | Vive en `sessionStorage`: **se borra al cerrar la pestaña**, no queda guardado en la computadora, y solo se envía a `api.github.com` (verificado con instrumentación) |
-| Alcance del OAuth | El Worker ya **no pide** permiso sobre todos los repositorios privados de la cuenta: pide solo `public_repo` + `user`. |
+| Alcance del OAuth | El Worker **desplegado** (verificado el 3/11/2026) **no pide** permiso sobre todos los repositorios privados de la cuenta: pide solo `public_repo` + `user`. El repo del sitio es público, así que alcanza. |
 | Página del panel | Marcada `noindex` + bloqueada en `robots.txt`: no aparece en Google |
 | Documentación interna | Excluida de la publicación (`_config.yml`) **y** bloqueada en `robots.txt`: bitácora, README, guías, código del Worker y scripts `.cmd` responden 404 en producción |
 | Datos personales | El sitio **no usa cookies**, no tiene analítica ni publicidad, y no tiene formularios que guarden datos. El aviso de privacidad está en `privacidad.html` |
@@ -151,11 +151,21 @@ Se probó el panel con una cuenta **sin** permiso de escritura sobre el reposito
 
 ## 6. Pendiente operativo (antes de publicar)
 
-- [ ] **Re-desplegar el Worker** en Cloudflare con `tools/worker-editor.js` actualizado (scope reducido a `public_repo` + mensajes de error claros). Workers & Pages → `sveltia-cms-auth` → Edit code → pegar → Deploy.
-- [ ] **Trasladar la OAuth App y el Worker** a la cuenta del cliente (pasos en `ENTREGA-CLIENTE.md`).
-- [ ] Push a producción (cuando el cliente dé el visto bueno).
-- [ ] Después del push: verificar que `/BITACORA.md`, `/README.md`, `/guias/`, `/tools/` y `/*.cmd` devuelvan **404**, y que `privacidad.html`, `404.html` y `manifest.json` devuelvan 200.
-- [ ] Después del push: Search Console + Google Business Profile.
+- [x] **Re-desplegar el Worker** en Cloudflare con `tools/worker-editor.js` actualizado (scope reducido a `public_repo` + mensajes de error claros). → **Hecho 2026-11-03** por API, conservando los secrets; verificado que GitHub ahora pide `public_repo,user`.
+- [x] Push a producción. → **Hecho** (commit `1006ac6`).
+- [x] Verificar que `/BITACORA.md`, `/README.md`, `/guias/`, `/tools/` y `/*.cmd` devuelven **404**, y que `privacidad.html`, `404.html` y `manifest.json` devuelven 200. → **Verificado en producción**.
+- [ ] ~~Trasladar la OAuth App y el Worker a la cuenta del cliente~~ → **descartado por decisión del 2026-11-03**: la llave del login se queda en la cuenta del desarrollador y el cliente publica igual con su propia cuenta (que es la dueña del repo). El traspaso queda documentado por si el cliente lo pide y el **PAT de alcance fino** es el plan B.
+- [ ] Search Console + Google Business Profile.
+
+### Quién puede publicar (2026-11-03)
+
+| Cuenta | Rol en el repo | ¿Puede publicar? |
+|---|---|---|
+| `laboutiquecatydog` (el cliente) | dueño (admin) | ✅ sí — es la cuenta titular del negocio |
+| `nicolabarranco27-a11y` (el desarrollador) | colaborador con escritura (`push`, sin admin) | ✅ sí — puede publicar y los commits quedan a su nombre |
+| Cualquier otra cuenta | sin rol | ❌ no — el panel la rechaza antes de mostrarle el contenido |
+
+El desarrollador entra con su propia cuenta: **no comparte credenciales con el cliente** y su acceso se revoca desde GitHub con un clic. Por ese motivo **no** hace falta que el token del cliente viva en la computadora del desarrollador (ya se quitó del keyring local).
 
 ---
 
