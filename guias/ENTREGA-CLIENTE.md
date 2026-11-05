@@ -188,6 +188,8 @@ El repositorio puede seguir llamándose `laboutiquecatydog.github.io`: el domini
 
 **Transferencia y renovación:** si el dominio quedó a nombre del desarrollador, se transfiere al cliente sin cargo una vez que entregue su CUIT (el arancel de transferencia de NIC es el mismo que el del alta). La **renovación es anual y se hace en NIC.ar**, no en Cloudflare → recordatorio en el calendario.
 
+> **Estado 2026-11-05:** el dominio ya está en producción en `https://laboutiquecatydog.com.ar/` (registrado en NIC.ar, DNS en Cloudflare, `CNAME` de GitHub Pages, Worker con el dominio en `ALLOWED_DOMAINS` y URLs absolutas migradas). **Quedan 3 pasos en el panel de Cloudflare:** (1) registro **CNAME `www` → `laboutiquecatydog.github.io`** (hoy `www` no resuelve), (2) **Always Use HTTPS** activado (hoy `http://` sirve 200 sin saltar a `https://`), (3) **desactivar Web Analytics** (inyecta un beacon de seguimiento que la CSP bloquea y que contradice el aviso de privacidad).
+
 ---
 
 ## 9. Documentos legales y pendientes con el cliente
