@@ -253,7 +253,7 @@ El sitio es 100 % estático y se publica como **sitio de usuario**: el repositor
 - URL anterior (redirige 301 al dominio propio): <https://laboutiquecatydog.github.io/>
 - Repositorio: `https://github.com/laboutiquecatydog/laboutiquecatydog.github.io`
 - Configuración: **Settings → Pages → Source: Deploy from a branch**, rama `main`, carpeta `/ (root)`; **HTTPS activado**.
-- **Dominio propio:** `laboutiquecatydog.com.ar` (registrado en NIC.ar, DNS en Cloudflare). GitHub Pages genera el archivo `CNAME` con el dominio personalizado; no hay que borrarlo ni editarlo.
+- **Dominio propio:** `laboutiquecatydog.com.ar` (registrado en NIC.ar **a nombre del desarrollador por ahora**, DNS en Cloudflare). GitHub Pages genera el archivo `CNAME` con el dominio personalizado; no hay que borrarlo ni editarlo. En Cloudflare hacen falta **dos** registros CNAME → `laboutiquecatydog.github.io`: uno del **ápex** (`@`) y otro de **`www`** (ambos proxied). Always Use HTTPS activado.
 
 Para actualizar, subí los cambios a `main` y Pages reconstruye automáticamente. Esto aplica también a los cambios que hace el panel: cada guardado es un commit y el sitio se republica.
 
@@ -341,17 +341,20 @@ Sitio publicado en GitHub Pages con el contenido en JSON. **Todo el rediseño de
 
 ## Pendientes / TODO
 
-- [ ] **Search Console + Google Business Profile:** guías paso a paso para el cliente (verificación, envío de `sitemap.xml`, pedido de indexación, alta/reclamo de la ficha de Maps con NAP consistente). El cliente decidió dejarlo para después del push.
+- [ ] **Search Console (con el dominio nuevo):** crear la propiedad de tipo **Dominio** para `laboutiquecatydog.com.ar` (verificación con un registro **TXT** que da Google → se agrega en Cloudflare DNS), enviar `https://laboutiquecatydog.com.ar/sitemap.xml` y pedir la indexación de la portada. La propiedad anterior (`https://laboutiquecatydog.github.io/`) ya no sirve: esa URL redirige al dominio propio. Procedimiento en `guias/ENTREGA-CLIENTE.md` (sección 10).
+- [ ] **Google Business Profile:** alta y reclamo de la ficha del local (nombre, dirección, teléfono, horarios, fotos, categoría "Tienda de mascotas") → es el factor #1 para búsquedas locales del tipo "pet shop cerca mío". La verificación puede tardar días o semanas.
 - [ ] **Guía del cliente:** video o PDF corto con la rutina del panel (entrar → editar → publicar).
-- [ ] **Dominio propio (hecho, faltan 2 detalles):** ya está en producción en `https://laboutiquecatydog.com.ar/` (registrado en NIC.ar, DNS en Cloudflare, `CNAME` de GitHub Pages). Pendiente: (a) crear el registro **CNAME `www` → `laboutiquecatydog.github.io`** en Cloudflare y (b) activar **Always Use HTTPS**. Procedimiento completo en `guias/ENTREGA-CLIENTE.md` (secciones 0 y 8).
-- [ ] **Firmar el contrato de licencia de uso** con el cliente (modelo en `guias/CONTRATO-LICENCIA-USO.md`; se completa e imprime **fuera de este repositorio**, que es público).
+- [ ] **Transferir el dominio a nombre del cliente:** hoy `laboutiquecatydog.com.ar` está a nombre del desarrollador. Requiere el **CUIT del cliente** (transferencia en NIC.ar: $8.500, el destinatario tiene 4 días corridos para aceptarla y debe haber entrado antes a Trámites a Distancia). Mientras tanto, se firma la **autorización** (`guias/AUTORIZACION-DOMINIO.md`).
+- [ ] **Firmar el contrato de licencia de uso** con el cliente (modelo en `guias/CONTRATO-LICENCIA-USO.md`; se completa e imprime **fuera de este repositorio**, que es público). La reserva de derechos del software ya está cubierta por el `LICENSE`; el contrato agrega lo económico, el soporte y el traspaso de cuentas. Orden de la entrega: autorización → traspaso de dominio y cuentas → contrato.
 - [ ] **Datos de inscripción del cliente** (CUIT, Clave Fiscal nivel 2, razón social, domicilio legal, teléfono, email, DNI del representante) → también hacen falta para el dominio.
 - [ ] **Validar con el contador** el texto del libro de reclamos virtual (Ley 27.266: no se pudo verificar en fuente oficial) antes de publicarlo como exacto.
-- [ ] **Dados de Estalingrado Corp**: cuando la empresa tenga inscripción en ARCA, completar domicilio y CUIT en el contrato, la carta y los documentos legales.
+- [ ] **Datos de Estalingrado Corp**: cuando la empresa tenga inscripción en ARCA, completar domicilio y CUIT en el contrato, la carta y los documentos legales.
 - [ ] Verificar si los filtros comparten bien "Camas" y "Accesorios" (mapeo `mascotas` es supuesto).
 - [ ] Verificar resolución de `assets/img/local.jpg` (449×660, podría verse baja como fondo).
 - [ ] Revisar recorte/encuadre de las fotos de producto.
 - [ ] Decidir si se limpia el Worker accidental `laboutiquecatydog-github-io` (ya no se usa; la web va por GitHub Pages).
+
+> **Dominio propio: hecho ✓** — `https://laboutiquecatydog.com.ar/` en producción (registrado en NIC.ar a nombre del desarrollador, DNS en Cloudflare con los registros CNAME del ápex y de `www`, `CNAME` de GitHub Pages, HTTPS forzado, `www` redirigiendo al ápex sin loops).
 
 ---
 

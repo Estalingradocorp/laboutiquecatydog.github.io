@@ -293,3 +293,45 @@ Se crearon **dos repositorios privados de respaldo** en la cuenta del desarrolla
 - **Verificado en producción sobre `https://laboutiquecatydog.com.ar/`**: `/terminos.html` 200 ✓ · `/privacidad.html` 200 ✓ · `/LICENSE` 404 ✓ · `/guias/*` 404 ✓ · canonical, `og:url`, `og:image`, `twitter:image`, `sitemap.xml` y `robots.txt` con el dominio nuevo ✓ · pie con los links legales y "Desarrollo y operación: Estalingrado Corp" ✓ · `footer.copyright` = "Estalingrado Corp. Todos los derechos reservados." ✓.
 - **Suite de producción 9/9** sobre el dominio propio (0 errores de JavaScript), incluida la nueva prueba del flujo de login: el panel lleva a GitHub con el `client_id` correcto y `scope=public_repo,user`.
 - **Hallazgo de privacidad**: Cloudflare inyecta su beacon de analítica (`static.cloudflareinsights.com`), que la CSP del sitio bloquea (por eso aparece como violación en la consola y **no** se carga). Como el aviso de privacidad declara que no hay cookies ni analítica, lo correcto es **desactivar Web Analytics en el panel de Cloudflare** (o, si se quiere usar, hay que permitirlo en la CSP y corregir el aviso).
+
+---
+
+## 2026-11-05 · El dominio propio en producción (segunda tanda): DNS, HTTPS, incidente y revisión del aviso
+
+### Estado final del dominio (todo verificado)
+
+| Comprobación | Resultado |
+|---|---|
+| `laboutiquecatydog.com.ar` (ápex) | CNAME → `laboutiquecatydog.github.io`, proxied (naranja) → resuelve a las IPs de Cloudflare ✓ |
+| `www.laboutiquecatydog.com.ar` | CNAME → `laboutiquecatydog.github.io`, proxied ✓ |
+| `https://laboutiquecatydog.com.ar/` | **200** con TLS válido ✓ |
+| `https://www.laboutiquecatydog.com.ar/` | **301 → `https://laboutiquecatydog.com.ar/`** ✓ (sin loop) |
+| `http://laboutiquecatydog.com.ar/` | **301 → https** ✓ (Always Use HTTPS) |
+| `https://laboutiquecatydog.github.io/` | 301 → el dominio propio ✓ (los enlaces guardados siguen sirviendo) |
+| Web Analytics de Cloudflare | sin beacon inyectado ✓ (sin seguimiento y sin violación de CSP) |
+
+### Incidente: el ápex quedó sin registro
+
+Al **editar** el registro CNAME del ápex y cambiarle el Nombre a `www`, Cloudflare **lo renombró en el lugar** (no crea uno nuevo) → el ápex se quedó **sin ningún registro** → el dominio no resolvía y la web quedaba caída (la URL vieja de GitHub redirigía a un destino inexistente). Se detectó consultando los **servidores autoritativos** de Cloudflare (`jakub`/`priscilla.ns.cloudflare.com`) en lugar del resolver local, que cacheaba el NXDOMAIN.
+
+**Solución**: crear un **segundo** registro CNAME (nombre `@` / `laboutiquecatydog.com.ar` → `laboutiquecatydog.github.io`, proxied) **sin tocar** el de `www`. Lección: para tener ápex y `www` hacen falta **dos registros**; renombrar no duplica.
+
+### Revisión del aviso de privacidad (pendiente de aplicar)
+
+El párrafo sobre el panel de administración es **cierto en lo esencial** (el token se guarda en `sessionStorage` y los borradores en `localStorage`, y se borran al cerrar sesión — verificado en `admin/editor.js`), pero tiene tres imprecisiones:
+
+1. "el token de acceso de GitHub" → mejor "las credenciales de acceso" (el aviso es para consumidores; el detalle técnico no aporta nada legal).
+2. "y no en nuestros servidores" → **impreciso**: durante el canje OAuth el token *pasa* por el Worker de Cloudflare (no se almacena ahí, pero transita). La fórmula exacta es "**no se almacenan en servidores del sitio**".
+3. Falta el dato legalmente relevante: el acceso se delega a **GitHub**, que aplica su propia política de privacidad.
+
+Conclusión de seguridad: publicar ese párrafo **no abre una vía de ataque** (el panel exige cuenta de GitHub **con permiso de escritura**; sin eso no se puede publicar nada y no se expone ningún secreto). Es una decisión de tono y precisión, no de seguridad.
+
+### Decisiones de negocio tomadas
+
+- **El contrato de licencia de uso no se firma ahora**: la web funciona sin él y el cliente todavía no está listo. La reserva de derechos ya está cubierta por el `LICENSE` público del repo. Al cliente se le firma en la entrega, en este orden: (1) autorización del dominio → (2) traspaso de dominio y cuentas → (3) contrato.
+- **El dominio queda a nombre del desarrollador por ahora** → por eso la carta de autorización es el documento clave antes de la entrega.
+- **Pendiente de SEO/marketing**: Search Console con el dominio nuevo (propiedad de tipo Dominio + sitemap) y ficha de **Google Business Profile**, que es el factor #1 para búsquedas locales del tipo "pet shop cerca mío".
+
+### Documentación actualizada
+
+`README.md` (URLs y pendientes), `guias/ENTREGA-CLIENTE.md` (estado real del dominio, orden de entrega y pasos de Search Console) y esta bitácora.

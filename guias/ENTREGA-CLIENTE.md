@@ -211,9 +211,9 @@ El repositorio puede seguir llamándose `laboutiquecatydog.github.io`: el domini
 
 ### Pendientes que requieren al cliente
 
-- [ ] **Firmar el contrato de licencia de uso** (se completa e imprime **fuera del repo**: el repositorio es público y no lleva CUIT, razón social, domicilio fiscal ni honorarios).
+- [ ] **Firmar el contrato de licencia de uso** (se completa e imprime **fuera del repo**: el repositorio es público y no lleva CUIT, razón social, domicilio fiscal ni honorarios). **No se firma ahora**: la web funciona sin él y la reserva de derechos del software ya está cubierta por el `LICENSE` público. Se firma en la reunión de entrega, en este orden: autorización del dominio → traspaso de dominio y cuentas → contrato.
 - [ ] **Entregar los datos de inscripción**: CUIT, Clave Fiscal nivel 2, razón social, domicilio legal, teléfono, email, DNI del representante.
-- [ ] **Confirmar el titular del dominio** (cliente / desarrollador con transferencia posterior) y firmar la autorización si aplica.
+- [ ] **Decidir la titularidad del dominio.** Hoy `laboutiquecatydog.com.ar` está **a nombre del desarrollador**. Dos caminos: (a) el cliente lo registra/transfiere a su nombre con su CUIT (NIC.ar: $8.500, tiene 4 días corridos para aceptar la transferencia y debe haber entrado antes a Trámites a Distancia) o (b) se mantiene a nombre del desarrollador y el cliente firma la **autorización** (`guias/AUTORIZACION-DOMINIO.md`), con compromiso de transferencia en 30 días una vez que entregue su CUIT.
 - [ ] **Confirmar el texto del libro de reclamos virtual** con el contador (la Ley 27.266 no se pudo verificar en fuente oficial: `argentina.gob.ar` estaba caído) antes de darlo por exacto.
 - [ ] **Completear los datos de la Empresa** cuando Estalingrado Corp tenga inscripción en ARCA: domicilio y CUIT (hoy no están en ningún documento público, a propósito).
 
@@ -221,4 +221,41 @@ El repositorio puede seguir llamándose `laboutiquecatydog.github.io`: el domini
 
 - El pie de la web dice **"Desarrollo y operación: Estalingrado Corp"** y la línea de copyright la tiene Estalingrado Corp: la reserva de derechos es de la empresa, no del nombre comercial del negocio. El negocio sigue apareciendo con su marca en todo el sitio.
 - **Nada sensible en el repositorio público**: ni CUIT, ni razón social, ni domicilio fiscal, ni honorarios, ni datos del cliente.
+
+---
+
+## 10. Que la gente encuentre el sitio: Search Console y Google Business Profile
+
+El sitio ya está en producción con el dominio propio; lo que falta es que Google lo indexe y que el local aparezca en las búsquedas locales ("pet shop cerca mío"). Son dos tareas separadas: la primera la puede hacer el desarrollador en 10 minutos; la segunda requiere al cliente (o alguien de su confianza).
+
+### 10.1 — Google Search Console (propiedad del dominio)
+
+1. Entrar a <https://search.google.com/search-console> con la cuenta de Google que se vaya a administrar.
+2. **"Agregar propiedad"** → tipo **"Dominio"** (no "Prefijo de URL") → escribir `laboutiquecatydog.com.ar` → **Continuar**.
+3. Google muestra un **registro TXT** de verificación (tipo `google-site-verification=...`).
+   - En Cloudflare: **DNS → Registros → Añadir registro** → **Tipo: TXT** · **Nombre: `@`** · **Contenido: el valor que dio Google** · TTL Automático → **Guardar**.
+   - Los TXT **no** se proxied: la nube queda gris siempre.
+4. Volver a Search Console → **Verificar**. Puede tardar unos minutos.
+5. **Sitemaps** (menú lateral) → escribir `sitemap.xml` → **Enviar**. El archivo ya apunta al dominio nuevo (`https://laboutiquecatydog.com.ar/sitemap.xml`) ✓.
+6. **Inspección de URL** → escribir `https://laboutiquecatydog.com.ar/` → **Solicitar indexación**.
+7. **La propiedad anterior** (`https://laboutiquecatydog.github.io/`, tipo prefijo) ya no sirve para nada: esa URL ahora redirige al dominio propio. Se puede borrar de Search Console y dejar solo la del dominio.
+
+### 10.2 — Google Business Profile (la ficha del local)
+
+Es lo que hace que el negocio aparezca en el mapa cuando alguien busca "pet shop Salta" o "tienda de mascotas cerca mío".
+
+1. Entrar en <https://www.google.com/business/> → **"Agregar ubicación"**.
+2. **Nombre del negocio**: `La Boutique Cat & Dog` (tiene que coincidir **exactamente** con el letrero del local).
+3. **Categoría principal**: "Tienda de mascotas" (y secundarias: "Tienda de productos para mascotas", "Veterinario" solo si realmente ofrecen ese servicio).
+4. **Dirección y zona de servicio**: el local en Diario La Nación y Diario El Litoral, B.º Periodista, Salta.
+5. **Teléfono** y **horarios** → deben ser **idénticos** a los de la web y a los de Instagram (NAP consistente: nombre, dirección y teléfono iguales en todos lados).
+6. **Fotos**: logo, vidriera y productos. Google penaliza las fichas sin fotos.
+7. **Verificación**: Google manda una postcard o un SMS/llamada → puede tardar días o semanas. Se puede hacer el alta antes y completar después.
+
+### 10.3 — Otros pendientes de presencia digital
+
+- **Bing Webmaster Tools**: se importa la web desde Search Console en 2 clics (recomendado, gratis).
+- **Actualizar los enlaces viejos**: códigos QR impresos, cartelería, la bio de Instagram, el WhatsApp de contacto y los marcadores del panel → que apunten a `https://laboutiquecatydog.com.ar/`. La URL anterior sigue redirigiendo, pero conviene dejar todo en el dominio definitivo.
+- **Recordatorio anual**: la renovación del `.com.ar` se hace en **NIC.ar** (no en Cloudflare) → poner un recordatorio en el calendario para renewing.
+- **El dominio a nombre del cliente**: hasta que entregue su CUIT, el `.com.ar` sigue a nombre del desarrollador. Mientras tanto, la **autorización** firmada (`guias/AUTORIZACION-DOMINIO.md`) es lo que amarra el vínculo.
 
