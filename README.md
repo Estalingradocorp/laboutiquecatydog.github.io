@@ -4,9 +4,9 @@ Sitio web de una sola página (landing) para **La Boutique Cat & Dog**, tienda d
 
 El contenido (textos, imágenes, enlaces y secciones) **no está en el HTML**: vive en archivos JSON dentro de `data/` y se renderiza en el navegador con JavaScript. Sobre esa base hay un **panel de administración visual tipo constructor** en `/admin/editor.html` para que el cliente edite todo con su navegador: textos sobre la propia vista previa, imágenes, productos, orden de secciones y datos del local.
 
-**Web:** <https://laboutiquecatydog.github.io/>
-**Panel visual:** `https://laboutiquecatydog.github.io/admin/editor.html` *(requiere login con GitHub; ver [Panel visual de administración](#panel-visual-de-administración))*
-**Panel avanzado (Sveltia):** <https://laboutiquecatydog.github.io/admin/> *(respaldo para casos avanzados)*
+**Web:** <https://laboutiquecatydog.com.ar/>
+**Panel visual:** `https://laboutiquecatydog.com.ar/admin/editor.html` *(requiere login con GitHub; ver [Panel visual de administración](#panel-visual-de-administración))*
+**Panel avanzado (Sveltia):** <https://laboutiquecatydog.com.ar/admin/> *(respaldo para casos avanzados)*
 
 ---
 
@@ -54,6 +54,8 @@ la-boutique-cat-y-dog/
 ├── index.html                  # Esqueleto: <head> (SEO, fuentes, JSON-LD) y contenedores
 ├── 404.html                    # Página de error 404 (GitHub Pages la sirve automáticamente)
 ├── privacidad.html             # Aviso de privacidad (Ley 25.326) — sin cookies ni analítica
+├── terminos.html               # Términos y condiciones (responsable, precios, propiedad intelectual, reclamos)
+├── LICENSE                     # Titularidad del software: © Estalingrado Corp + licencia de uso — NO se publica
 ├── manifest.json               # Datos de la app web (icono, colores, pantalla de inicio)
 ├── _config.yml                 # Config de Jekyll: EXCLUYE la documentación interna de la publicación
 ├── robots.txt                  # Qué puede indexar Google (excluye /admin/ y la doc interna)
@@ -64,7 +66,9 @@ la-boutique-cat-y-dog/
 ├── BITACORA.md                 # Registro cronológico del proyecto
 ├── guias/
 │   ├── INFORME-SEGURIDAD.md    # Auditoría de seguridad (presentable al cliente)
-│   └── ENTREGA-CLIENTE.md      # Guía de entrega + traspaso de cuentas al cliente
+│   ├── ENTREGA-CLIENTE.md      # Guía de entrega + traspaso de cuentas + dominio propio + sección legal
+│   ├── CONTRATO-LICENCIA-USO.md # Modelo en blanco del contrato de licencia de uso (NO se publica)
+│   └── AUTORIZACION-DOMINIO.md  # Carta de autorización para registrar/administrar el dominio (NO se publica)
 ├── css/
 │   └── styles.css              # Todos los estilos (variables, layout, componentes)
 ├── js/
@@ -91,7 +95,7 @@ la-boutique-cat-y-dog/
 
 > **Excluido del repo** (ver `.gitignore`): `Contenido Imagenes/` (26 MB de imágenes originales; las optimizadas ya están en `assets/img/`) y `_backup/` (copias de seguridad históricas de etapas previas).
 
-> **Excluido de la publicación web** (ver `_config.yml`): `README.md`, `BITACORA.md`, `guias/`, `tools/` y los `*.cmd`. En producción esas rutas devuelven **404** y además están bloqueadas en `robots.txt`.
+> **Excluido de la publicación web** (ver `_config.yml`): `README.md`, `BITACORA.md`, `guias/`, `tools/`, `LICENSE` y los `*.cmd`. En producción esas rutas devuelven **404** y además están bloqueadas en `robots.txt`.
 
 ---
 
@@ -245,9 +249,11 @@ El proyecto arrancó con **Sveltia CMS** en `/admin/` como primer panel. Todo lo
 
 El sitio es 100 % estático y se publica como **sitio de usuario**: el repositorio `laboutiquecatydog.github.io` se sirve desde la rama `main` (raíz), sin build.
 
-- **URL publicada:** <https://laboutiquecatydog.github.io/>
+- **URL publicada:** <https://laboutiquecatydog.com.ar/>
+- URL anterior (redirige 301 al dominio propio): <https://laboutiquecatydog.github.io/>
 - Repositorio: `https://github.com/laboutiquecatydog/laboutiquecatydog.github.io`
 - Configuración: **Settings → Pages → Source: Deploy from a branch**, rama `main`, carpeta `/ (root)`; **HTTPS activado**.
+- **Dominio propio:** `laboutiquecatydog.com.ar` (registrado en NIC.ar, DNS en Cloudflare). GitHub Pages genera el archivo `CNAME` con el dominio personalizado; no hay que borrarlo ni editarlo.
 
 Para actualizar, subí los cambios a `main` y Pages reconstruye automáticamente. Esto aplica también a los cambios que hace el panel: cada guardado es un commit y el sitio se republica.
 
@@ -329,6 +335,7 @@ Sitio publicado en GitHub Pages con el contenido en JSON. **Todo el rediseño de
 | **W5c — copias + robustez** | **Copias de seguridad** en el navegador (auto antes de publicar, manuales, descargar/subir archivo, restaurar como borrador); la vista previa refleja reordenar/ocultar/agregar en vivo; `.gitignore` con `graphify-out/` | Publicado |
 | **W5d — cierre** | Push general a producción, smoke test, guías de Search Console + Google Business Profile, guía del cliente | Publicado |
 | **Auditoría 2026-11-03** | Seguridad (documentación interna ocultada), estabilidad (5 bugs del panel), UX (autoplay del hero, `noscript`, foco de modales, errores en español), imágenes optimizadas (−760 KB), `404.html` / `privacidad.html` / `manifest.json` | Publicado (`1006ac6`) |
+| **Huella legal 2026-11-05** | `terminos.html` publicada, `LICENSE` (titularidad de Estalingrado Corp, no se publica), pie con links legales y "Desarrollo y operación: Estalingrado Corp", modelo de contrato de licencia de uso y autorización de dominio (internos) | Publicado |
 
 ---
 
@@ -336,14 +343,22 @@ Sitio publicado en GitHub Pages con el contenido en JSON. **Todo el rediseño de
 
 - [ ] **Search Console + Google Business Profile:** guías paso a paso para el cliente (verificación, envío de `sitemap.xml`, pedido de indexación, alta/reclamo de la ficha de Maps con NAP consistente). El cliente decidió dejarlo para después del push.
 - [ ] **Guía del cliente:** video o PDF corto con la rutina del panel (entrar → editar → publicar).
+- [ ] **Dominio propio (hecho, faltan 2 detalles):** ya está en producción en `https://laboutiquecatydog.com.ar/` (registrado en NIC.ar, DNS en Cloudflare, `CNAME` de GitHub Pages). Pendiente: (a) crear el registro **CNAME `www` → `laboutiquecatydog.github.io`** en Cloudflare y (b) activar **Always Use HTTPS**. Procedimiento completo en `guias/ENTREGA-CLIENTE.md` (secciones 0 y 8).
+- [ ] **Firmar el contrato de licencia de uso** con el cliente (modelo en `guias/CONTRATO-LICENCIA-USO.md`; se completa e imprime **fuera de este repositorio**, que es público).
+- [ ] **Datos de inscripción del cliente** (CUIT, Clave Fiscal nivel 2, razón social, domicilio legal, teléfono, email, DNI del representante) → también hacen falta para el dominio.
+- [ ] **Validar con el contador** el texto del libro de reclamos virtual (Ley 27.266: no se pudo verificar en fuente oficial) antes de publicarlo como exacto.
+- [ ] **Dados de Estalingrado Corp**: cuando la empresa tenga inscripción en ARCA, completar domicilio y CUIT en el contrato, la carta y los documentos legales.
 - [ ] Verificar si los filtros comparten bien "Camas" y "Accesorios" (mapeo `mascotas` es supuesto).
 - [ ] Verificar resolución de `assets/img/local.jpg` (449×660, podría verse baja como fondo).
 - [ ] Revisar recorte/encuadre de las fotos de producto.
 - [ ] Decidir si se limpia el Worker accidental `laboutiquecatydog-github-io` (ya no se usa; la web va por GitHub Pages).
-- [ ] Considerar dominio propio + SSL si el negocio quiere una URL de marca.
 
 ---
 
 ## Licencia y contacto
 
-Contenido y marca de **La Boutique Cat & Dog**. Para consultas: `laboutiquecatydog@gmail.com`.
+**El software de este sitio (código fuente, diseño y panel) pertenece a Estalingrado Corp** y se licencia al negocio **La Boutique Cat & Dog** para uso no exclusivo e intransferible. Ver `LICENSE` (copyright de Estalingrado Corp, autoría del desarrollador con su derecho moral de paternidad) y `guias/CONTRATO-LICENCIA-USO.md` (modelo del contrato, interno).
+
+La **marca, el logotipo, las fotografías y los contenidos** son del negocio. La web se publica en <https://laboutiquecatydog.com.ar/>.
+
+Para consultas: `laboutiquecatydog@gmail.com`.

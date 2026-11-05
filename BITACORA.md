@@ -229,3 +229,59 @@ Revisión de seguridad, estabilidad y UX del sitio y del panel. 25 hallazgos; lo
 La **OAuth App** y el **Worker** son la "llave de la puerta" del panel, no el contenido: el token que obtiene el cliente es **de la cuenta del cliente**, que es la dueña del repo y la única que decide qué se publica. La llave se queda en la cuenta del desarrollador (decisión 2026-11-03) para que el cliente no tenga que administrar Cloudflare; el traspaso al cliente queda documentado en 3 pasos en `guias/ENTREGA-CLIENTE.md` (sección 0) por si algún día lo pide, y el **PAT de alcance fino** sigue siendo el plan B si el desarrollador dejara de dar mantenimiento.
 
 > Corrección de la guía de entrega: los nombres de las variables del Worker son `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` y `ALLOWED_DOMAINS` (la guía decía `CLIENT_ID`, `CLIENT_SECRET`, `ORIGIN` y `ALLOWED_REPOS`, que no existen).
+
+---
+
+## 2026-11-05 · Huella legal del proyecto + respaldo del código fuente
+
+Trabajo pedido por el desarrollador: **que la empresa quede como titular de los derechos** en los documentos legales del sitio (no el nombre comercial del negocio) y dejar preparada la compra del dominio propio.
+
+### Decisión de fondo
+
+La reserva de derechos la hace **Estalingrado Corp** (la empresa que desarrolla y mantiene el software), no el nombre "La Boutique Cat & Dog" (que es marca del cliente). En el pie de la web, la línea de copyright ahora dice *"Estalingrado Corp. Todos los derechos reservados."* y se agregó *"Desarrollo y operación: Estalingrado Corp"*. El negocio sigue apareciendo con su marca en todo el sitio: lo que se protege es el **software**, no la marca ajena.
+
+### Archivos nuevos
+
+- **`terminos.html`** (publicado): quién es el responsable (Estalingrado Corp opera el sitio y es titular del software; el negocio es el que vende), datos de inscripción a solicitud, naturaleza informativa del sitio (sin carrito ni pago online), precios orientativos, propiedad intelectual (marca y fotos del negocio / software de Estalingrado Corp con licencia de uso y prohibición de copiar, modificar o redistribuir sin autorización), consultas y reclamos, ley aplicable (Salta), cookies y aviso de cambios.
+- **`LICENSE`** (raíz del repo, **excluido de la publicación** vía `_config.yml`): copyright de Estalingrado Corp, autoría a nombre de la empresa (sin nominación personal) con el derecho moral de paternidad de la Ley 11.872 (inalienable), licencia de uso no exclusiva e intransferible al negocio, prohibición de sublicenciar o revender.
+- **`guias/CONTRATO-LICENCIA-USO.md`** (interno): modelo en blanco de 17 secciones + Anexos I/II + **bloque de firmas**. Objeto, límites de la licencia, titularidad y autoría, marca y contenidos del cliente, cuentas y dominio, entregables, soporte, precios, obligaciones, derechos de imagen, confidencialidad, portfolio, terminación (la licencia de uso sobrevive al fin de la relación), responsabilidad, ley aplicable y firmas.
+- **`guias/AUTORIZACION-DOMINIO.md`** (interno): autorización para registrar y administrar el dominio, con **bloque de firma**; variante A (el cliente entrega su CUIT y lo registra como apoderado) y variante B (se registra a nombre del desarrollador con compromiso de transferencia sin cargo en 30 días); tabla de los datos que hay que pedirle al cliente; notas de ejecución de NIC.ar.
+
+### Archivos modificados
+
+- `privacidad.html`: el bloque "Quién es el responsable" ahora nombra a Estalingrado Corp como responsable del tratamiento y titular del software, con el negocio y su domicilio; se agrega la línea de datos de inscripción a solicitud.
+- `js/render.js`: el pie suma los links **Aviso de privacidad · Términos y condiciones** y la línea "Desarrollo y operación: Estalingrado Corp".
+- `data/sitio.json`: `footer.copyright` → "Estalingrado Corp. Todos los derechos reservados." (sigue editable desde el panel).
+- `_config.yml`: `LICENSE` agregado al `exclude` (evidencia de titularidad visible en GitHub, pero no publicada).
+- `guias/ENTREGA-CLIENTE.md`: sección 0 con el procedimiento real del dominio; sección 8 reescrita con el paso a paso de NIC.ar → Cloudflare → GitHub Pages → Worker; **sección 9 nueva** (documentos legales, pendientes que requieren al cliente y decisiones de la empresa).
+- `README.md`: estructura, estado, sección de licencia y pendientes actualizados.
+
+### Regla que se respetó
+
+**Nada sensible en el repositorio público**: el repositorio es público (lo exige GitHub Pages) → los documentos firmados se completan **fuera de GitHub**; en el repo no hay CUIT, razón social, domicilio fiscal, honorarios ni datos del cliente. Por eso el contrato y la autorización son **modelos en blanco** con campos entre corchetes.
+
+### Investigación del dominio (verificada en fuente oficial + WHOIS)
+
+- Los `.ar` **solo se registran en NIC Argentina** (`nic.ar`): Cloudflare y GitHub no los venden; Cloudflare se usa después como zona DNS. Precios: `.com.ar` $8.500/año, `.ar` $25.500/año, `.net.ar` $8.500/año.
+- **Libres** (WHOIS de NIC.ar): `laboutiquecatydog.com.ar` (recomendado), `laboutiquecatydog.ar`, `laboutiquecatydog.net.ar`, `boutiquecatydog.com.ar`, `la-boutique-cat-y-dog.com.ar`, `laboutiquecatydog.com` (este último, en un registrador internacional). `laboutique.com.ar` está ocupado.
+- Requisitos: **CUIT + Clave Fiscal nivel 2** para el titular; **nivel 3** para operar en representación de otra persona. Transferencia: $8.500 y el destinatario tiene **4 días corridos** para aceptarla (debe haber entrado antes a Trámites a Distancia).
+- **Estalingrado Corp todavía no puede ser titular**: sin inscripción en ARCA no tiene CUIT → pendiente de la empresa, no del sitio.
+- El **WHOIS es público** (titular, DNS, fechas) y el nombre contiene una marca ajena → NIC.ar puede pedir comprobante de autorización: hay que pedirla **antes** de pagar.
+- Los datos de Cloudflare (4 registros A de GitHub Pages, CNAME de `www`, SSL Full strict, 301 de `www` → naked, TXT `_github-pages-challenge-…`) y la necesidad de **agregar el dominio a `ALLOWED_DOMAINS` del Worker** quedaron documentados en la guía de entrega.
+
+### Leyes: lo que no se pudo verificar
+
+- **Ley 11.872** (derecho moral de paternidad del autor, inalianable; derechos económicos cedibles): el texto legal se redacta **sin citar artículos**, por si el número o el contenido cambiara.
+- **Ley 27.266** (Libro de Reclamaciones Virtual): `argentina.gob.ar` devolvió 500 y las búsquedas no dieron resultado oficial → **no se pudo confirmar** el alcance. La frase del sitio ("el libro de reclamos virtual se entrega a quien lo solicite") queda **pendiente de validación con el contador** antes de darla por exacta.
+
+### Respaldo del código fuente
+
+Se crearon **dos repositorios privados de respaldo** en la cuenta del desarrollador: `laboutiquecatydog-mirror` (SHA `f235012`) y `sveltia-cms-auth-mirror` (SHA `6e3a01d`), con el remote `respaldo` agregado al repo local (`git push --all respaldo`).
+
+### El dominio propio: `laboutiquecatydog.com.ar` en producción
+
+- **Registrado en NIC.ar por el cliente** y delegado en Cloudflare (nameservers `jakub.ns.cloudflare.com` / `priscilla.ns.cloudflare.com`, zona `83317105a3afc27218bd598b7e2a2182`, plan Free). GitHub Pages validó el DNS y creó solo el `CNAME` (`3c745f6 Create CNAME`).
+- Estado verificado: `https://laboutiquecatydog.com.ar/` responde **200 con TLS válido**; `http://` también respondía 200 sin saltar a HTTPS (pendiente: activar **Always Use HTTPS** en Cloudflare); `www.laboutiquecatydog.com.ar` **no resuelve** (pendiente: crear el registro CNAME `www` → `laboutiquecatydog.github.io`).
+- **El panel se había quedado sin login**: con el dominio nuevo, `/auth` en el Worker devolvía **400** ("el dominio no está en ALLOWED_DOMAINS") porque la variable seguía siendo `laboutiquecatydog.github.io, localhost` → y como la URL vieja ahora redirige a la nueva, tampoco se entraba por `laboutiquecatydog.github.io`. **Worker redesplegado** con `ALLOWED_DOMAINS = "laboutiquecatydog.com.ar, www.laboutiquecatydog.com.ar, laboutiquecatydog.github.io, localhost"` (versión `89c81374`, secret `GITHUB_CLIENT_SECRET` conservado). Verificado: origen nuevo 302 ✓, `www` 302 ✓, origen viejo 302 ✓, dominio falso 400 ✓, scope `public_repo,user` ✓.
+- **URLs absolutas migradas** al dominio propio: `index.html` (canonical, `og:image`, `og:url`, `twitter:image`), `robots.txt` (Sitemap), `sitemap.xml` (`<loc>` + `lastmod`) y `js/main.js` (respaldo del link "En producción" del aviso de `file://`).
+- La URL vieja `laboutiquecatydog.github.io` ahora **redirige 301** al dominio propio: los enlaces guardados y los marcadores del panel siguen funcionando.

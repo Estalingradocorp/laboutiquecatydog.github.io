@@ -786,9 +786,9 @@
     /* Las URLs absolutas se calculan con el dominio donde el sitio está
        publicado. Así, si el negocio compra un dominio propio, las etiquetas
        de SEO y de redes sociales apuntan al dominio nuevo sin tocar código.
-       En index.html quedan los valores de Github Pages como respaldo para
+       En index.html quedan los valores del dominio propio como respaldo para
        los rastreadores que no ejecutan JavaScript. */
-    var origenSitio = location.origin === "null" ? "https://laboutiquecatydog.github.io" : location.origin;
+    var origenSitio = location.origin === "null" ? "https://laboutiquecatydog.com.ar" : location.origin;
     var urlInicio = origenSitio + "/";
     var urlImagen = origenSitio + "/assets/img/og-image.jpg";
     var canonical = document.querySelector('link[rel="canonical"]');
@@ -913,7 +913,7 @@
           "<p>El sitio carga sus textos y sus fotos desde archivos JSON y el navegador no los puede leer " +
           "cuando abrís <code>index.html</code> con doble clic. Hay dos formas de verlo:</p>" +
           "<ul>" +
-          "<li><strong>En producción</strong>: <a href=\"https://laboutiquecatydog.github.io/\">laboutiquecatydog.github.io</a></li>" +
+          "<li><strong>En producción</strong>: <a href=\"https://laboutiquecatydog.com.ar/\">laboutiquecatydog.com.ar</a></li>" +
           "<li><strong>En esta computadora</strong>: doble clic en <code>preview.cmd</code> (levanta un servidor local y abre la web solo).</li>" +
           "</ul>"
         : "<h2>No se pudo cargar el contenido</h2>" +
