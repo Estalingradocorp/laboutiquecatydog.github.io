@@ -70,6 +70,17 @@ Se deja el Worker del desarrollador (funciona) y se le da al cliente un **token 
 
 Este PAT es más simple de usar pero **no se puede revocar desde el panel**: si se filtra, hay que ir a GitHub a borrarlo. El login por OAuth es mejor; el PAT es el plan B.
 
+### El dominio: se compra aparte, en NIC.ar
+
+El cliente pidió un dominio propio. **No se compra en Cloudflare ni en GitHub**: los dominios `.ar` solo se registran en **NIC Argentina** (`nic.ar`), y Cloudflare después lo usa como zona de DNS.
+
+- **Candidatos libres** (verificado por WHOIS de NIC.ar): `laboutiquecatydog.com.ar` ($8.500/año, **el recomendado**), `laboutiquecatydog.ar` ($25.500/año), `laboutiquecatydog.net.ar`, `boutiquecatydog.com.ar`, `la-boutique-cat-y-dog.com.ar`. `laboutique.com.ar` está ocupado. `laboutiquecatydog.com` también está libre, pero ese se compra en un registrador internacional (Cloudflare Registrar, a costo).
+- **Quién es el titular:** el cliente (el nombre es su marca). El desarrollador puede registrarlo a nombre del cliente **como apoderado** (NIC.ar exige Clave Fiscal nivel 3 para operar en representación de otra persona) o, si el cliente no quiere compartir su Clave Fiscal, en una videollamada guiada. Si se registra a nombre del desarrollador, hace falta la autorización firmada de `guias/AUTORIZACION-DOMINIO.md` y luego se transfiere ($8.500).
+- **Estalingrado Corp todavía no puede ser titular**: sin inscripción en ARCA no tiene CUIT y NIC.ar no tramita sin él. Es un pendiente de la empresa, no del sitio.
+- **Datos que hay que pedirle al cliente:** CUIT, Clave Fiscal nivel 2, nombre o razón social, domicilio legal, teléfono, email y DNI del representante.
+- **Configuración (en este orden):** NIC.ar *Delegar* → los 2 nameservers de Cloudflare → Cloudflare DNS (4 registros A `185.199.108.153`, `.109`, `.110`, `.111` para `@`; CNAME `www` → `laboutiquecatydog.github.io`; SSL "Full (strict)"; regla 301 de `www`) → GitHub Pages *Custom domain* + TXT `_github-pages-challenge-laboutiquecatydog.github.io` → **agregar el dominio a `ALLOWED_DOMAINS` del Worker** (sin esto el login del panel rebota con "error de acceso") → cambiar las URLs absolutas del repo.
+- **Renovación:** anual y **en NIC.ar**, no en Cloudflare → recordatorio en el calendario.
+
 ---
 
 ## 1. ¿Qué necesita el cliente SÍ o SÍ?
@@ -153,17 +164,59 @@ Lo único que hoy depende del desarrollador es la **llave del login** (OAuth App
 
 El repositorio puede seguir llamándose `laboutiquecatydog.github.io`: el dominio propio se le **agrega**, no reemplaza nada del proyecto. GitHub Pages da el HTTPS (certificado automático) solo.
 
-1. **Comprar el dominio** a nombre del cliente (registrador + correo del cliente). Sugerencias: `laboutiquecatydog.com.ar`, `laboutiquecatydog.com`, `boutiquecatydog.com.ar`.
-2. **GitHub** → el repo → Settings → Pages → **Custom domain** → escribir el dominio → Save. GitHub crea el archivo `CNAME` en el repo y muestra los registros de DNS que hay que configurar.
-3. **Registrador/DNS**: crear los registros que indique GitHub (para el dominio raíz: `A` a las IP de GitHub Pages; para `www`: `CNAME` a `laboutiquecatydog.github.io`).
-4. **Cloudflare Worker — el paso que no hay que olvidar**: Settings → Variables → `ALLOWED_DOMAINS` → agregar el dominio nuevo:
+> Los `.ar` **solo se compran en NIC Argentina** (`nic.ar`), no en Cloudflare ni en GitHub. Cloudflare se usa después como zona de DNS. Detalle completo en la sección 0.
+
+1. **Registrar en NIC.ar** con el CUIT del titular: `laboutiquecatydog.com.ar` ($8.500/año) es el recomendado; `laboutiquecatydog.ar` cuesta $25.500/año. El titular debe poder iniciar sesión en Trámites a Distancia (Clave Fiscal nivel 2) y, si el developer tramita en su nombre, necesita **nivel 3** + apoderamiento. Datos que hay que pedirle al cliente: CUIT, Clave Fiscal, razón social, domicilio legal, teléfono, email, DNI del representante.
+2. **Delegar en Cloudflare**: NIC.ar → *Delegar* → los 2 nameservers que muestra la zona de Cloudflare. Ojo: los nameservers no se inventan, se leen de la zona.
+3. **Cloudflare DNS** (solo A y CNAME; sin reglas de caché):
+   - `@` → A → `185.199.108.153`, `185.199.108.109`, `185.199.108.110`, `185.199.108.111`
+   - `www` → CNAME → `laboutiquecatydog.github.io`
+   - SSL/TLS → **Full (strict)** · Rules → 301 de `www` → dominio naked (si no, "Too many redirects")
+   - **Sin HSTS todavía** hasta que el HTTPS propio esté verificado.
+4. **GitHub** → repo → Settings → Pages → **Custom domain** → el dominio naked → Save. GitHub crea el `CNAME` y pide verificar con el TXT `_github-pages-challenge-laboutiquecatydog.github.io`.
+5. **Cloudflare Worker — el paso que no hay que olvidar**: Settings → Variables → `ALLOWED_DOMAINS` → agregar el dominio nuevo:
    `laboutiquecatydog.github.io, <TU-DOMINIO>, www.<TU-DOMINIO>`
    Sin esto, el login del panel rebota con *"error de acceso"*: el Worker valida desde qué dominio se vuelve al panel.
-5. **Archivos del repo con URLs absolutas** (4 lugares):
+6. **Archivos del repo con URLs absolutas** (4 lugares):
    - `index.html`: `link rel="canonical"`, `og:url`, `og:image`, `twitter:image`
    - `robots.txt`: la línea `Sitemap: ...`
    - `sitemap.xml`: el `<loc>`
    - `js/main.js`: el link de ayuda que aparece si se abre el `index.html` con doble clic
    (las URLs de SEO que se calculan en vivo ya toman el dominio nuevo solas, pero conviene actualizarlas para los rastreadores que no ejecutan JavaScript).
-6. **Verificar**: la web abre en el dominio nuevo con HTTPS, el panel entra con el login de GitHub, y `Publicar` sigue funcionando (el `CNAME` que crea GitHub hay que commitearlo si GitHub no lo hace solo).
-7. **Search Console**: mover el sitemap al dominio nuevo (el sitio se mantiene en las dos direcciones; la canonical apunta a la nueva).
+7. **Verificar**: la web abre en el dominio nuevo con HTTPS, el panel entra con el login de GitHub, y `Publicar` sigue funcionando (el `CNAME` que crea GitHub hay que commitearlo si GitHub no lo hace solo).
+8. **Search Console**: mover el sitemap al dominio nuevo (el sitio se mantiene en las dos direcciones; la canonical apunta a la nueva).
+
+**Transferencia y renovación:** si el dominio quedó a nombre del desarrollador, se transfiere al cliente sin cargo una vez que entregue su CUIT (el arancel de transferencia de NIC es el mismo que el del alta). La **renovación es anual y se hace en NIC.ar**, no en Cloudflare → recordatorio en el calendario.
+
+---
+
+## 9. Documentos legales y pendientes con el cliente
+
+### Lo que ya está hecho (sin nada pendiente del cliente)
+
+| Documento | Dónde | Para qué |
+|---|---|---|
+| `terminos.html` | publicado en la web |quién es el responsable, naturaleza del sitio, precios, propiedad intelectual, reclamos, ley aplicable |
+| `privacidad.html` | publicado en la web | aviso de privacidad (Ley 25.326) con responsable, cookies y contacto |
+| `LICENSE` | raíz del repo (**no se publica**) | evidencia pública de titularidad: copyright de Estalingrado Corp, autoría a nombre de la empresa (sin nominación personal), licencia de uso al negocio |
+| `guias/CONTRATO-LICENCIA-USO.md` | interno (**no se publica**) | modelo en blanco del contrato entre Estalingrado Corp y el cliente |
+| `guias/AUTORIZACION-DOMINIO.md` | interno (**no se publica**) | autorización para registrar/administrar el dominio + datos que hay que pedirle al cliente |
+
+### Los dos motivos por los que existen los documentos internos
+
+1. **Reservar los derechos del software.** El código es estándar (HTML/CSS/JS sin dependencias) y el repo es público: sin documento, cualquiera puede copiarlo y publicarlo como propio. El `LICENSE` + el contrato lo cubren.
+2. **Que el negocio no dependa del desarrollador.** Si mañana el developer "desaparece", el cliente tiene el contrato, el `LICENSE`, la autorización del dominio y el respaldo en la cuenta de la empresa.
+
+### Pendientes que requieren al cliente
+
+- [ ] **Firmar el contrato de licencia de uso** (se completa e imprime **fuera del repo**: el repositorio es público y no lleva CUIT, razón social, domicilio fiscal ni honorarios).
+- [ ] **Entregar los datos de inscripción**: CUIT, Clave Fiscal nivel 2, razón social, domicilio legal, teléfono, email, DNI del representante.
+- [ ] **Confirmar el titular del dominio** (cliente / desarrollador con transferencia posterior) y firmar la autorización si aplica.
+- [ ] **Confirmar el texto del libro de reclamos virtual** con el contador (la Ley 27.266 no se pudo verificar en fuente oficial: `argentina.gob.ar` estaba caído) antes de darlo por exacto.
+- [ ] **Completear los datos de la Empresa** cuando Estalingrado Corp tenga inscripción en ARCA: domicilio y CUIT (hoy no están en ningún documento público, a propósito).
+
+### Lo que se decidió del lado de la Empresa
+
+- El pie de la web dice **"Desarrollo y operación: Estalingrado Corp"** y la línea de copyright la tiene Estalingrado Corp: la reserva de derechos es de la empresa, no del nombre comercial del negocio. El negocio sigue apareciendo con su marca en todo el sitio.
+- **Nada sensible en el repositorio público**: ni CUIT, ni razón social, ni domicilio fiscal, ni honorarios, ni datos del cliente.
+

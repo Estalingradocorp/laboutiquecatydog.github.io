@@ -27,6 +27,8 @@ exclude:
   # --- Archivos de configuración del repositorio ---
   - _config.yml
   - .gitignore
+  # --- Aviso de licencia: evidencia de autoría en el repo, no se publica ---
+  - LICENSE
   # --- Defaults de Jekyll (se repiten para no perderlos al reemplazar
   #     la lista por defecto) ---
   - .sass-cache

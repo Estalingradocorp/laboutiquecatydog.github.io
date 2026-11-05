@@ -192,7 +192,8 @@
       "</div>" +
       '<div class="container footer-bottom">' +
       "<p>&copy; <span data-year>2026</span> " + e(f.copyright) + "</p>" +
-      '<p class="footer-legal"><a href="privacidad.html">Aviso de privacidad</a></p>' +
+      '<p class="footer-legal"><a href="privacidad.html">Aviso de privacidad</a> &middot; <a href="terminos.html">Términos y condiciones</a></p>' +
+      '<p class="footer-legal">Desarrollo y operación: Estalingrado Corp</p>' +
       "</div>"
     );
   }
