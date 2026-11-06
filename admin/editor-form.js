@@ -184,6 +184,7 @@
     seguinosTitulo: { etiqueta: "Título de la columna «Seguinos»" },
     whatsappTexto: { etiqueta: "Texto del botón de WhatsApp del pie" },
     copyright: { tipo: "textarea", filas: 2, etiqueta: "Aviso de copyright" },
+    empresaUrl: { etiqueta: "Enlace de la empresa (pie)", pista: "URL de la empresa del aviso de copyright. Al completarlo, la huella legal se abre en una pestaña nueva. Dejalo vacío para que sea solo texto." },
     nombre: { etiqueta: "Nombre" },
     nombreSecundario: { etiqueta: "Nombre secundario" },
     url: { etiqueta: "Dirección (URL)" }

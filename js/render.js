@@ -140,6 +140,11 @@
     var redes = sitio.redes || {};
     var n = sitio.nav || [];
 
+    /* La huella legal es un enlace a la empresa cuando tiene URL */
+    var copyright = e(f.copyright);
+    if (set(f.empresaUrl)) {
+      copyright = '<a class="enlace-copyright" href="' + a(f.empresaUrl) + '" target="_blank" rel="noopener">' + copyright + "</a>";
+    }
     var secciones = n.map(function (item) {
       return "<li><a href=\"" + hrefSeguro(item.ancla) + '">' + e(item.texto) + "</a></li>";
     }).join("");
@@ -191,7 +196,7 @@
       "</div>" +
       "</div>" +
       '<div class="container footer-bottom">' +
-      "<p>&copy; <span data-year>2026</span> " + e(f.copyright) + "</p>" +
+      "<p>&copy; <span data-year>2026</span> " + copyright + "</p>" +
       '<p class="footer-legal"><a href="privacidad.html">Aviso de privacidad</a> &middot; <a href="terminos.html">Términos y condiciones</a></p>' +
       '<p class="footer-legal">Desarrollo y operación: Estalingrado Corp</p>' +
       "</div>"
