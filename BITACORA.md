@@ -371,3 +371,13 @@ Sin errores de JavaScript en ningún caso. Los scripts viven en `%TEMP%\opencode
 ### Archivos tocados
 
 `admin/editor-form.js` (listas compactas + ventana), `admin/editor.html` (markup de la ventana y texto de ayuda), `admin/editor.css` (estilos nuevos), `admin/editor.js` (`cerrarModal` coordina el cierre de la ventana y se preserva el scroll).
+
+### Aviso de privacidad: corregido (3 cambios)
+
+Se aplicaron las tres imprecisiones que había detectado y explicado:
+
+1. «token de acceso de GitHub» → «**credenciales de acceso**» (el aviso es para consumidores; el detalle técnico no aporta legalmente).
+2. «(y no en nuestros servidores)» → «**no se almacenan en servidores del sitio**»: el token *transita* el Worker de Cloudflare durante el canje OAuth (no queda almacenado ahí), así que la fórmula anterior era demasiado categórica.
+3. Se agregó que **el inicio de sesión se delega a GitHub**, que aplica su propia política de privacidad y sus reglas de acceso al repositorio.
+
+Ningún cambio altera el comportamiento: el panel sigue exigiendo cuenta de GitHub con permiso de escritura y no expone secretos.
