@@ -85,7 +85,8 @@
     productos: {
       tipo: "productos", id: "productos-nueva",
       eyebrow: "Productos", titulo: "Nuestra selección",
-      intro: "", mostrarFiltros: true, ctaTexto: "Consultar disponibilidad",
+      intro: "", mostrarFiltros: true, buscador: true,
+      categoriasProducto: [], ctaTexto: "Consultar disponibilidad",
       productos: []
     },
     imagenTexto: {
@@ -1057,6 +1058,9 @@
        al principio y perdía todo el contexto. Se guarda y se devuelve. */
     var caja = $("#form-seccion");
     var scroll = caja ? caja.scrollTop : 0;
+    /* El motor de formularios necesita el modelo entero: de ahí saca las
+       opciones de «Para qué mascotas» y de «Categorías de producto». */
+    BQForm.setDatos(datos);
     BQForm.construirSeccion(datos.secciones[seccionAbierta], caja,
       alCambiarSeccionForm, alCambiarImagenSeccion);
     if (caja) { caja.scrollTop = scroll; }

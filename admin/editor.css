@@ -463,8 +463,35 @@ a { color: var(--tinta); }
   box-shadow: 0 0 0 3px rgba(192, 39, 45, 0.1);
 }
 .campo-pista { font-size: 0.73rem; color: var(--gris-600); margin: 4px 0 0; }
+.campo-pista.aviso-campo { color: var(--acento); }
 .campo-check { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; padding: 4px 0; cursor: pointer; }
 .campo-check input { width: 16px; height: 16px; accent-color: var(--acento); }
+
+/* Selección múltiple: píldoras con check (mascotas, categorías de producto) */
+.opciones-pildoras { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px; }
+.opcion-pildora {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px; border: 1px solid var(--gris-300); border-radius: 999px;
+  background: var(--blanco); font-size: 0.82rem; color: var(--tinta);
+  cursor: pointer; user-select: none;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.opcion-pildora:hover { border-color: var(--gris-400, var(--gris-300)); }
+.opcion-pildora input { width: 14px; height: 14px; margin: 0; accent-color: var(--acento); }
+.opcion-pildora:has(input:checked) {
+  background: var(--negro); border-color: var(--negro); color: var(--blanco);
+}
+.opcion-pildora:has(input:focus-visible) {
+  outline: 3px solid var(--acento); outline-offset: 2px;
+}
+.opcion-todos {
+  margin-top: 2px; padding: 4px 10px; font-size: 0.75rem; font-family: var(--fuente);
+  border: 1px dashed var(--gris-300); border-radius: 999px;
+  background: transparent; color: var(--gris-600); cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.opcion-todos:hover { border-color: var(--negro); color: var(--tinta); }
+.opcion-todos.is-activo { border-style: solid; border-color: var(--negro); color: var(--tinta); background: var(--gris-100); }
 .campo-lectura {
   font-size: 0.9rem; color: var(--gris-700);
   background: var(--gris-100); border-radius: 8px; padding: 6px 10px; margin: 0;
@@ -827,6 +854,26 @@ a { color: var(--tinta); }
   display: flex; color: var(--gris-600); pointer-events: none;
 }
 .buscar-lupa svg { width: 15px; height: 15px; }
+
+/* Lista administrable de categorías de producto: filas de texto */
+.lista-texto { margin: 0 0 14px; }
+.lista-texto-filas { display: flex; flex-direction: column; gap: 6px; margin: 10px 0 12px; }
+.fila-texto {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 8px; border: 1px solid var(--gris-200); border-radius: 12px;
+  background: var(--gris-50);
+}
+.fila-texto-input {
+  flex: 1; min-width: 0; border: 1px solid transparent; border-radius: 8px;
+  padding: 5px 8px; font-family: var(--fuente); font-size: 0.88rem;
+  background: var(--blanco); color: var(--tinta);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.fila-texto-input:hover { border-color: var(--gris-200); }
+.fila-texto-input:focus {
+  outline: none; border-color: var(--acento);
+  box-shadow: 0 0 0 3px rgba(192, 39, 45, 0.1);
+}
 
 /* Tira de íconos: rejilla que arma filas, o carrusel si son muchos */
 .prod-tira-wrap { position: relative; }

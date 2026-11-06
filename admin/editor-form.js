@@ -37,6 +37,7 @@
     slides: "Fotos del carrusel",
     tarjetas: "Tarjetas de categoría",
     productos: "Productos",
+    categoriasProducto: "Categorías de producto",
     fotos: "Fotos del producto",
     nav: "Ítems del menú"
   };
@@ -80,6 +81,7 @@
     }
     if (clave === "tarjetas") {
       return {
+        id: "",
         imagen: media.imagen,
         alt: "",
         ancho: media.ancho || 0,
@@ -94,10 +96,11 @@
     }
     if (clave === "productos") {
       return {
-        etiqueta: "Nuevo",
         titulo: "Producto nuevo",
         descripcion: "",
-        mascotas: "perro gato",
+        mascotas: [],
+        categorias: [],
+        destacado: false,
         precio: "",
         mensajeWhatsApp: "",
         fotos: [{ foto: media.imagen, alt: "", ancho: media.ancho || 0, alto: media.alto || 0 }]
@@ -106,12 +109,22 @@
     return {};
   }
 
+  /* Item nuevo de una lista: para las tarjetas de categoría se genera el
+     identificador que usan los filtros de la web. */
+  function nuevoItem(clave, media, lista) {
+    var item = plantillaDe(clave, media);
+    if (clave === "tarjetas") {
+      item.id = idUnico(slug(item.titulo), lista);
+    }
+    return item;
+  }
+
   /* Reglas por campo. Clave = nombre del campo en el JSON. Lo que no está
      acá recibe una etiqueta genérica derivada del nombre. */
   var REGLAS = {
     id: {
-      etiqueta: "Identificador (ancla de la sección)",
-      pista: "Con cuidado: los enlaces del menú apuntan a esta ancla (ej.: #productos). Cambiarla los rompe."
+      etiqueta: "Identificador",
+      pista: "Código interno. En las secciones es el ancla que usan los enlaces del menú (ej.: #productos); en las tarjetas de categorías es el que agrupa a los productos en los filtros. No lo cambies si ya está en uso."
     },
     mostrarFiltros: { tipo: "check", etiqueta: "Mostrar los filtros de categoría" },
     srcset: { tipo: "textarea", filas: 2, etiqueta: "srcset (variantes de tamaño)", pista: "Lo completa solo el editor al subir la foto. Solo tocar si sabés lo que hacés." },
@@ -139,9 +152,22 @@
     alt: { etiqueta: "Texto alternativo de la foto" },
     imagenAlt: { etiqueta: "Texto alternativo de la foto" },
     logoAlt: { etiqueta: "Texto alternativo del logo" },
-    etiqueta: { etiqueta: "Rótulo (etiqueta chica)" },
-    mascotas: { etiqueta: "Para qué mascotas", pista: "palabras separadas por espacio: perro, gato" },
-    precio: { etiqueta: "Precio (opcional)", pista: "se muestra con «$»: dejá vacío si no aplica" },
+    etiqueta: { etiqueta: "Etiqueta", pista: "Texto corto que acompaña al enlace." },
+    mascotas: {
+      tipo: "opciones-multiple",
+      etiqueta: "Para qué mascotas",
+      pista: "Elegí una o más de la sección «Categorías». Si no elegís ninguna, el producto sirve para todas.",
+      fuente: "mascotas"
+    },
+    categorias: {
+      tipo: "opciones-multiple",
+      etiqueta: "Categorías de producto",
+      pista: "Asigná el producto a una o varias categorías: son las que usan los filtros de la web.",
+      fuente: "categorias-producto"
+    },
+    destacado: { tipo: "check", etiqueta: "Destacado (se muestra arriba de todo)" },
+    buscador: { tipo: "check", etiqueta: "Mostrar el buscador en el catálogo" },
+    precio: { etiqueta: "Precio (opcional)", pista: "si escribís un número se muestra con «$» (ej.: 12000 → $12.000). Dejalo vacío si no aplica." },
     whatsapp: { etiqueta: "WhatsApp (solo números)", pista: "con código de país, ej.: 543874578676" },
     whatsappDisplay: { etiqueta: "WhatsApp (cómo se muestra)", pista: "ej.: +54 9 387 457-8676" },
     phone: { etiqueta: "Teléfono (opcional, para datos estructurados)" },
@@ -165,7 +191,8 @@
 
   /* Claves técnicas que no se muestran en ningún formulario. `huella` quedó
      en desuso (se retiró el camino decorativo de huellas): si algún
-     borrador viejo la trae, no se muestra. */
+     borrador viejo la trae, no se muestra. `etiqueta` era el rótulo chico
+     de las tarjetas de producto: se retiró del modelo y de la web. */
   var TECNICOS = { tipo: 1, oculto: 1, huella: 1 };
 
   /* Configuración del selector de imágenes según el campo y su contexto */
@@ -194,6 +221,81 @@
   /* ------------------------- Utilidades DOM ------------------------------ */
   function crear(tag) { return document.createElement(tag); }
 
+  function slug(txt) {
+    return String(txt || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  /* ---------------------- Opciones que salen del modelo ------------------- */
+  /* El motor necesita ver el modelo entero para armar las opciones de
+     «Para qué mascotas» (las tarjetas de la sección Categorías) y de
+     «Categorías de producto» (la lista administrable de la sección
+     Productos). El panel le pasa el modelo con BQForm.setDatos. */
+  var DATOS = null;
+
+  function seccionesDe(tipo) {
+    if (!DATOS || !Array.isArray(DATOS.secciones)) { return []; }
+    return DATOS.secciones.filter(function (s) { return s && s.tipo === tipo; });
+  }
+
+  function opcionesDe(fuente) {
+    var out = [];
+    var agregar = function (item, titulo) {
+      if (!item || !titulo) { return; }
+      out.push({ id: item.id || slug(titulo), titulo: titulo });
+    };
+    if (fuente === "mascotas") {
+      seccionesDe("categorias").forEach(function (sec) {
+        (sec.tarjetas || []).forEach(function (t) { agregar(t, t.titulo); });
+      });
+      return out;
+    }
+    if (fuente === "categorias-producto") {
+      seccionesDe("productos").forEach(function (sec) {
+        (sec.categoriasProducto || []).forEach(function (c) { agregar(c, c.titulo); });
+      });
+      return out;
+    }
+    return out;
+  }
+
+  /* Normaliza la selección: acepta el formato nuevo (array de ids) y el
+     viejo (texto "perro gato"). */
+  function normalizarSeleccion(valor, opciones) {
+    var ids = [];
+    if (Array.isArray(valor)) {
+      ids = valor.slice();
+    } else if (typeof valor === "string" && valor.trim()) {
+      valor.toLowerCase().split(/[\s,]+/).forEach(function (t) {
+        var op = opciones.filter(function (o) {
+          return o.id === t || o.id.indexOf(t) === 0 || slug(o.titulo).indexOf(t) === 0;
+        })[0];
+        if (op) { ids.push(op.id); }
+      });
+    }
+    return ids.filter(function (id) {
+      return opciones.some(function (o) { return o.id === id; });
+    });
+  }
+
+  function leerSeleccion(grupo) {
+    return Array.prototype.slice.call(grupo.querySelectorAll("input[type=checkbox]"))
+      .filter(function (c) { return c.checked; })
+      .map(function (c) { return c.value; });
+  }
+
+  function actualizarEstadoTodos(caja, seleccion) {
+    var todos = caja.querySelector(".opcion-todos");
+    if (!todos) { return; }
+    var marcado = !seleccion || !seleccion.length;
+    todos.classList.toggle("is-activo", marcado);
+    todos.setAttribute("aria-pressed", marcado ? "true" : "false");
+  }
+
   function etiquetaDe(clave) {
     var r = REGLAS[clave];
     if (r && r.etiqueta) { return r.etiqueta; }
@@ -219,6 +321,57 @@
     var actual = raiz;
     for (var i = 0; i < ruta.length - 1; i++) { actual = actual[ruta[i]]; }
     actual[ruta[ruta.length - 1]] = valor;
+  }
+
+  /* Título anterior de una tarjeta de categoría (o null si no aplica) */
+  function tituloPrevio(raiz, ruta) {
+    if (!ruta || ruta.length !== 3 || ruta[0] !== "tarjetas" || ruta[2] !== "titulo") { return null; }
+    var lista = (raiz && raiz.tarjetas) || [];
+    var tarjeta = lista[ruta[1]];
+    return tarjeta ? tarjeta.titulo : null;
+  }
+
+  /* Identificador único dentro de la lista de tarjetas */
+  function idUnico(base, lista) {
+    var raiz = base || "categoria";
+    var usado = (lista || []).map(function (t) { return t && t.id; });
+    var id = raiz;
+    var n = 2;
+    while (usado.indexOf(id) !== -1) { id = raiz + "-" + n; n += 1; }
+    return id;
+  }
+
+  /* Si el id de la tarjeta era el generado a partir del título viejo y
+     ningún producto lo usa, se rehace con el título nuevo. Si el cliente
+     lo editó a mano o ya hay productos apuntando a él, se respeta. */
+  function sincronizarIdTarjeta(raiz, ruta, tituloViejo) {
+    var lista = (raiz && raiz.tarjetas) || [];
+    var tarjeta = lista[ruta[1]];
+    if (!tarjeta) { return; }
+    var idViejo = tarjeta.id || "";
+    /* Tarjeta vieja sin identificador: se le da uno ahora */
+    if (!idViejo) {
+      tarjeta.id = idUnico(slug(tarjeta.titulo), lista);
+      return;
+    }
+    if (idViejo !== (slug(tituloViejo) || "")) { return; }
+    var nuevo = slug(tarjeta.titulo);
+    if (!nuevo || nuevo === idViejo) { return; }
+    if (idEnUso(idViejo)) { return; }
+    tarjeta.id = idUnico(nuevo, lista);
+  }
+
+  /* ¿Algún producto apunta a este identificador de mascota? */
+  function idEnUso(id) {
+    var secciones = (DATOS && DATOS.secciones) || [];
+    var usado = false;
+    secciones.forEach(function (sec) {
+      if (!sec || sec.tipo !== "productos") { return; }
+      (sec.productos || []).forEach(function (p) {
+        if ((p.mascotas || []).indexOf(id) !== -1) { usado = true; }
+      });
+    });
+    return usado;
   }
 
   /* ------------------------ Campo simple ---------------------------------- */
@@ -264,6 +417,69 @@
       envoltura.appendChild(chk);
       envoltura.appendChild(document.createTextNode(" " + etiquetaDe(clave)));
       caja.appendChild(envoltura);
+      return caja;
+    }
+
+    /* Selección múltiple con píldoras. Las opciones salen del modelo:
+       «Para qué mascotas» usa las tarjetas de la sección Categorías y
+       «Categorías de producto» usa la lista administrable de Productos. */
+    if (tipo === "opciones-multiple") {
+      var opciones = opcionesDe(regla.fuente);
+      var eleccion = normalizarSeleccion(valor, opciones);
+      var rotuloOpciones = crear("span");
+      rotuloOpciones.className = "campo-etiqueta";
+      rotuloOpciones.textContent = etiquetaDe(clave);
+      caja.appendChild(rotuloOpciones);
+
+      if (!opciones.length) {
+        var aviso = crear("p");
+        aviso.className = "campo-pista aviso-campo";
+        aviso.textContent = regla.fuente === "mascotas"
+          ? "No hay opciones todavía: agregá tarjetas en la sección «Categorías»."
+          : "No hay opciones todavía: agregá categorías de producto en esta sección.";
+        caja.appendChild(aviso);
+        return caja;
+      }
+
+      var grupo = crear("div");
+      grupo.className = "opciones-pildoras";
+      grupo.setAttribute("role", "group");
+      grupo.setAttribute("aria-label", etiquetaDe(clave));
+      opciones.forEach(function (op) {
+        var etiqueta = crear("label");
+        etiqueta.className = "opcion-pildora";
+        var chk = crear("input");
+        chk.type = "checkbox";
+        chk.value = op.id;
+        chk.checked = eleccion.indexOf(op.id) !== -1;
+        var texto = crear("span");
+        texto.textContent = op.titulo;
+        etiqueta.appendChild(chk);
+        etiqueta.appendChild(texto);
+        chk.addEventListener("change", function () {
+          var actual = leerSeleccion(grupo);
+          asignarValor(raiz, ruta, actual);
+          alCambiar();
+          actualizarEstadoTodos(caja, actual);
+        });
+        grupo.appendChild(etiqueta);
+      });
+      caja.appendChild(grupo);
+
+      var todos = crear("button");
+      todos.type = "button";
+      todos.className = "opcion-todos";
+      todos.textContent = regla.fuente === "mascotas" ? "Todos" : "Ninguna";
+      todos.addEventListener("click", function () {
+        Array.prototype.forEach.call(grupo.querySelectorAll("input[type=checkbox]"), function (c) {
+          c.checked = false;
+        });
+        asignarValor(raiz, ruta, []);
+        alCambiar();
+        actualizarEstadoTodos(caja, []);
+      });
+      caja.appendChild(todos);
+      actualizarEstadoTodos(caja, eleccion);
       return caja;
     }
 
@@ -325,7 +541,12 @@
     }
 
     var alTocar = function () {
+      var tituloViejo = tituloPrevio(raiz, ruta);
       asignarValor(raiz, ruta, extraer(control));
+      /* Si el título de una tarjeta de categoría cambió y su identificador
+         era el que se generó solo, se actualiza para que los filtros de la
+         web sigan usando un id coherente. */
+      if (tituloViejo != null) { sincronizarIdTarjeta(raiz, ruta, tituloViejo); }
       alCambiar();
     };
     control.addEventListener("input", alTocar);
@@ -416,9 +637,18 @@
       conMascotas: true,
       conBuscador: true,
       thumb: function (item) { return (item.fotos && item.fotos[0]) ? item.fotos[0].foto : null; },
-      nombre: function (item, i) { return (item && (item.titulo || item.etiqueta)) || ("Producto " + (i + 1)); },
+      nombre: function (item, i) { return (item && item.titulo) || ("Producto " + (i + 1)); },
       meta: function (item) {
         var partes = [];
+        var cats = item && Array.isArray(item.categorias) ? item.categorias : [];
+        if (cats.length) {
+          var titulos = opcionesDe("categorias-producto");
+          var nombres = cats.map(function (id) {
+            var op = titulos.filter(function (o) { return o.id === id; })[0];
+            return op ? op.titulo : id;
+          });
+          partes.push(nombres.join(", "));
+        }
         if (item && item.precio && String(item.precio).trim()) { partes.push(String(item.precio)); }
         var n = (item && item.fotos) ? item.fotos.length : 0;
         partes.push(n === 1 ? "1 foto" : n + " fotos");
@@ -426,11 +656,11 @@
       },
       buscable: function (item) {
         if (!item || typeof item !== "object") { return ""; }
-        return [item.titulo, item.etiqueta, item.descripcion, item.precio]
+        return [item.titulo, item.descripcion, item.precio]
           .filter(function (v) { return !!v; }).join(" ").toLowerCase();
       },
       quitarTexto: function (item) {
-        var nombre = (item && (item.titulo || item.etiqueta)) || "este producto";
+        var nombre = (item && item.titulo) || "este producto";
         return "¿Quitar el producto «" + nombre + "»? Deja de mostrarse cuando publiques.";
       }
     },
@@ -628,7 +858,7 @@
           tipo: "foto",
           conSrcset: clave === "slides",
           alElegir: function (media) {
-            valor.push(plantillaDe(clave, media));
+            valor.push(nuevoItem(clave, media, valor));
             alCambiar(true);
             /* El item nuevo se abre directo para completar los datos */
             abrirModalItem(valor.length - 1, clave, valor, raiz, ruta, alCambiar, alCambiarImagen, contexto);
@@ -929,9 +1159,11 @@
   /* Clase de mascota para el borde de color del card */
   function claseMascota(item) {
     if (!item || !item.mascotas) { return ""; }
-    var m = String(item.mascotas).split(/\s+/);
-    var tienePerro = m.indexOf("perro") !== -1;
-    var tieneGato = m.indexOf("gato") !== -1;
+    var m = Array.isArray(item.mascotas)
+      ? item.mascotas.map(function (x) { return String(x).toLowerCase(); })
+      : String(item.mascotas).split(/\s+/);
+    var tienePerro = m.some(function (x) { return x.indexOf("perro") === 0; });
+    var tieneGato = m.some(function (x) { return x.indexOf("gato") === 0; });
     if (tienePerro && tieneGato) { return "pet-ambos"; }
     if (tienePerro) { return "pet-perro"; }
     if (tieneGato) { return "pet-gato"; }
@@ -947,6 +1179,99 @@
     b.setAttribute("aria-label", titulo);
     b.addEventListener("click", alClic);
     return b;
+  }
+
+  /* ------------ Lista de texto administrable (categorías de producto) ------ */
+  /* Son solo nombres: no llevan foto, así que van como filas editables
+     (con ↑ ↓ y quitar) en vez de íconos con ventana. El id de cada
+     categoría no cambia cuando se renombra: los productos que la usan
+     siguen apuntando a la misma. */
+  function construirListaTexto(clave, valor, raiz, ruta, contenedor, alCambiar) {
+    var caja = crear("div");
+    caja.className = "lista-campo lista-texto";
+
+    var cabecera = crear("div");
+    cabecera.className = "bloque-cabecera";
+    var titulo = crear("h3");
+    titulo.className = "lista-titulo";
+    titulo.textContent = DICT_LISTAS[clave] || etiquetaDe(clave);
+    cabecera.appendChild(titulo);
+    var contador = crear("span");
+    contador.className = "bloque-contador";
+    contador.textContent = valor.length ? valor.length + " categorías" : "";
+    cabecera.appendChild(contador);
+    caja.appendChild(cabecera);
+
+    var nota = crear("p");
+    nota.className = "campo-pista";
+    nota.textContent = "Estas categorías ordenan el catálogo y arman los filtros de la web. No se muestran como sección en la página.";
+    caja.appendChild(nota);
+
+    var filas = crear("div");
+    filas.className = "lista-texto-filas";
+    valor.forEach(function (item, i) {
+      var fila = crear("div");
+      fila.className = "fila-texto";
+
+      var campo = crear("input");
+      campo.type = "text";
+      campo.className = "fila-texto-input";
+      campo.value = item.titulo || "";
+      campo.setAttribute("aria-label", "Nombre de la categoría");
+      campo.addEventListener("input", function () {
+        item.titulo = campo.value;
+        alCambiar();
+      });
+      fila.appendChild(campo);
+
+      fila.appendChild(botonMini("↑", "Subir", function () {
+        if (i === 0) { return; }
+        var sacado = valor.splice(i, 1)[0];
+        valor.splice(i - 1, 0, sacado);
+        alCambiar(true);
+      }));
+      fila.appendChild(botonMini("↓", "Bajar", function () {
+        if (i >= valor.length - 1) { return; }
+        var sacado = valor.splice(i, 1)[0];
+        valor.splice(i + 1, 0, sacado);
+        alCambiar(true);
+      }));
+      fila.appendChild(botonMini("✕", "Quitar categoría", function () {
+        var id = item.id;
+        valor.splice(i, 1);
+        /* Los productos que la tenían pierden la categoría: si no, el
+           filtro mostraría una categoría que ya no existe. */
+        seccionesDe("productos").forEach(function (sec) {
+          (sec.productos || []).forEach(function (p) {
+            if (Array.isArray(p.categorias)) {
+              p.categorias = p.categorias.filter(function (c) { return c !== id; });
+            }
+          });
+        });
+        alCambiar(true);
+      }, true));
+
+      filas.appendChild(fila);
+    });
+    caja.appendChild(filas);
+
+    var agregar = crear("button");
+    agregar.type = "button";
+    agregar.className = "btn-borde btn-bloque lista-agregar";
+    agregar.textContent = "+ Agregar categoría";
+    agregar.addEventListener("click", function () {
+      var n = valor.length + 1;
+      var id = "categoria-" + n;
+      while (valor.some(function (c) { return c.id === id; })) {
+        n += 1;
+        id = "categoria-" + n;
+      }
+      valor.push({ id: id, titulo: "Nueva categoría" });
+      alCambiar(true);
+    });
+    caja.appendChild(agregar);
+
+    contenedor.appendChild(caja);
   }
 
   function construirLista(clave, valor, raiz, ruta, contenedor, alCambiar, alCambiarImagen, contexto) {
@@ -1055,7 +1380,7 @@
           tipo: "foto",
           conSrcset: clave === "slides",
           alElegir: function (media) {
-            valor.push(plantillaDe(clave, media));
+            valor.push(nuevoItem(clave, media, valor));
             alCambiar(true);
           }
         });
@@ -1086,6 +1411,12 @@
     Object.keys(objeto).forEach(function (clave) {
       if (TECNICOS[clave]) { return; }
       if (excluidas && excluidas[clave]) { return; }
+      /* El rótulo chico de los productos se retiró: si un borrador viejo lo
+         trae, se borra en vez de mostrarlo. */
+      if (clave === "etiqueta" && ruta[0] === "productos") {
+        delete objeto[clave];
+        return;
+      }
       if (AVANZADOS[clave] && typeof objeto[clave] !== "object") {
         avanzados.push(clave);
         return;
@@ -1093,7 +1424,19 @@
       var valor = objeto[clave];
       var subRuta = ruta.concat([clave]);
 
+      /* Los campos de selección múltiple guardan un array de ids, pero no
+         son listas: se editan con píldoras, no como bloques de ítems. */
+      if (REGLAS[clave] && REGLAS[clave].tipo === "opciones-multiple") {
+        contenedor.appendChild(crearCampo(clave, valor, raiz, subRuta, alCambiar, contexto));
+        return;
+      }
+
       if (Array.isArray(valor)) {
+        /* La lista de categorías de producto se edita como filas de texto */
+        if (clave === "categoriasProducto") {
+          construirListaTexto(clave, valor, raiz, subRuta, contenedor, alCambiar);
+          return;
+        }
         /* Separador visual antes de listas (el bloque de íconos ya trae su
            propio título, así que ahí no hace falta) */
         if (EDITABLES[clave] && !TIPOS_LISTA[clave] &&
@@ -1123,8 +1466,10 @@
       }
 
       var campo = crearCampo(clave, valor, raiz, subRuta, alCambiar, contexto);
-      /* Campos cortos van lado a lado (menos scroll, más densidad) */
-      if (clave === "precio" || clave === "mascotas" || clave === "etiqueta" || clave === "mostrarFiltros") {
+      /* Campos cortos van lado a lado (menos scroll, más densidad).
+         Las listas de opciones (píldoras) ocupan la fila entera. */
+      if (clave === "precio" || clave === "destacado" || clave === "etiqueta" ||
+          clave === "mostrarFiltros" || clave === "buscador") {
         campo.classList.add("campo-medio");
       }
       contenedor.appendChild(campo);
@@ -1169,6 +1514,11 @@
   }
 
   window.BQForm = {
+    /* El panel pasa el modelo completo: lo usan las opciones que salen de
+       otras secciones (las tarjetas de «Categorías», la lista de
+       «Categorías de producto»). */
+    setDatos: function (datos) { DATOS = datos || null; },
+
     /* Formulario de una sección de la portada (data/pagina.json)
        alCambiar(esEstructural) · alCambiarImagen(ruta, config) */
     construirSeccion: function (seccion, contenedor, alCambiar, alCambiarImagen) {

@@ -125,6 +125,27 @@ Como **respaldo físico** de entrega (buena práctica), NO como requisito. Graba
 - `/admin/` también redirige al panel.
 - Recordale: la sesión vive en la pestaña; si la cierra, vuelve a "Iniciar sesión".
 
+## 5.b — Cómo carga y clasifica productos el cliente (para explicarle en la reunión)
+
+El catálogo de la web tiene **dos grupos de filtros** (por mascota y por categoría de producto), **buscador**, **contador** y aviso cuando no hay resultados. Todo eso se arma solo a partir de lo que el cliente marca en el panel.
+
+**Dónde se hace cada cosa:**
+
+| Qué quiere hacer | Dónde lo hace en el panel |
+|---|---|
+| Cargar un producto | Sección **Productos** → «+ Agregar producto» (elige la foto, depois completás título, descripción, precio, fotos y WhatsApp) |
+| Marcar para qué mascotas sirve | En la ventanita del producto → **«Para qué mascotas»** → casillas **Perros** / **Gatos**. Si no marca ninguna, sirve para todas (botón «Todos») |
+| Marcar a qué categoría pertenece | En la ventanita del producto → **«Categorías de producto»** → casillas (Alimentos, Descanso, Transporte, Accesorios, Juguetes…). Un producto puede estar en **varias** a la vez |
+| Crear una categoría nueva | En la sección **Productos**, bloque **«Categorías de producto»** → «+ Agregar categoría», y le ponés el nombre |
+| Renombrar una categoría | En ese mismo bloque: editás el texto de la fila y listo (no se rompe lo que ya está cargado) |
+| Quitar una categoría | En ese mismo bloque: botón **✕** de la fila. Los productos que la usaban quedan sin esa categoría |
+| Poner un producto arriba de todo | En la ventanita del producto → interruptor **«Destacado»** |
+| Poner el precio | Campo **«Precio (opcional)»**: si escribe un número (12000) sale `$12.000`; si escribe texto («Consultar») sale tal cual |
+
+**La idea clave para explicarlo:** una categoría **no es una carpeta con productos dentro**: es una **etiqueta** que se le pone a cada producto. Si sube tres marcas de alimento, son tres productos sueltos y a los tres les tilda «Alimentos»; el filtro «Alimentos» de la web los muestra juntos sin que haya que armar nada más. Los filtros se combinan: **mascota Y categoría** (perros + alimentos), y **Perros O Gatos** dentro del mismo grupo.
+
+**Tip para la reunión:** carguen un producto real con el cliente (una marca de alimento que venda) y muéstrenle cómo aparece cuando toca el filtro. Es la forma más rápida de que se entienda.
+
 ## 6. Checklist de la reunión de entrega
 
 ### Antes de la reunión (técnico)
@@ -147,6 +168,7 @@ Como **respaldo físico** de entrega (buena práctica), NO como requisito. Graba
 - [ ] Activar 2FA juntos y guardar los códigos de recuperación.
 - [ ] Guardar el marcador del panel en el celu del cliente.
 - [ ] Practicar con él/ella un cambio real (un texto + una foto) y publicarlo.
+- [ ] Practicar la carga de un producto **clasificado** (mascota + categoría + precio) y mostrar cómo la web lo filtra.
 - [ ] Mostrar el botón **«?»** del panel y regalarle el `guias/` impreso o en PDF.
 - [ ] Dejar el pendrive de respaldo.
 - [ ] Aclarar el plan de soporte acordado (ej.: ajustes incluidos por 30 dias).

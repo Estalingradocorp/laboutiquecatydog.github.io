@@ -381,3 +381,62 @@ Se aplicaron las tres imprecisiones que había detectado y explicado:
 3. Se agregó que **el inicio de sesión se delega a GitHub**, que aplica su propia política de privacidad y sus reglas de acceso al repositorio.
 
 Ningún cambio altera el comportamiento: el panel sigue exigiendo cuenta de GitHub con permiso de escritura y no expone secretos.
+
+## 2026-11-06 — Catálogo con categorías, filtros y destacados
+
+### Lo que se pidió
+
+1. Quitar el rótulo chico de las tarjetas de producto (decía lo mismo que el título).
+2. «Para qué mascotas» deja de ser un texto libre: pasa a ser una selección de las **categorías que ya existen** en la sección «Categorías».
+3. Agregar **categorías de producto** con filtros reales en la web, y que la lista sea administrable desde el panel.
+4. Cada producto puede llevar **varias categorías** (casillas de verificación, no una sola).
+5. Extras pedidos: contador de resultados, estado vacío, buscador en el catálogo, precio formateado y productos destacados.
+
+### Cómo quedó el modelo (`data/pagina.json`)
+
+- `categorias.tarjetas[]`: cada tarjeta (mascota) tiene un `id` estable (`perros`, `gatos`). Ese id es el que usan los filtros y la selección de los productos; el texto visible sigue siendo el `titulo`.
+- Sección de productos: se agregaron `mostrarFiltros`, `buscador` y `categoriasProducto: [{ id, titulo }]` (Alimentos, Descanso, Transporte, Accesorios, Juguetes).
+- Cada producto: `titulo`, `descripcion`, `mascotas: ["perros","gatos"]`, `categorias: ["alimentos"]`, `destacado`, `precio`, `mensajeWhatsApp`, `fotos`. **Se eliminó `etiqueta`** (el rótulo).
+- Migración hecha con un script idempotente: los productos que todavía no tenían categoría quedan asignados a la que corresponde y los destacados son «Alimento y nutrición» y «Transporte».
+
+### Panel (`admin/`)
+
+- **Bloque «Categorías de producto»** dentro de la sección Productos: se agregan, renombran y eliminan en el mismo lugar; al eliminar una categoría, los productos que la usaban la pierden (no quedan con referencias rotas).
+- **«Para qué mascotas» y «Categorías de producto»** se editan con píldoras (casillas) que salen del modelo: las primeras de las tarjetas de la sección Categorías (más un botón «Todos»), las segundas de la lista administrable (más un botón «Ninguna»).
+- Interruptor **«Destacado (se muestra arriba de todo)»** por producto.
+- Las **tarjetas de categoría nuevas** reciben un identificador solo; si el cliente renombra una tarjeta y ningún producto la usa, el identificador se rehace, pero si ya hay productos apuntando a él se respeta (no se rompen los filtros).
+- El motor de formularios tenía que distinguir un campo de selección múltiple (que guarda un array de ids) de una lista de bloques: sin ese cambio, «mascotas» y «categorías» se dibujaban como listas de texto.
+
+### Web (`js/`, `css/`)
+
+- Dos grupos de filtros: **mascota** y **categoría de producto**; se combinan con Y entre grupos y O dentro del mismo grupo.
+- **Buscador** con espera corta (150 ms), **contador** («5 productos» / «4 de 5 productos») y **estado vacío** («No hay productos con esos filtros. Probá con otra búsqueda»).
+- **Precios**: los numéricos se formatean con miles (`$12.000`); los textos libres se respetan tal cual («Consultar»).
+- **Destacados**: salen primero en la grilla, con aro de color y etiqueta «Destacado». Cada tarjeta conserva su índice real (`data-producto`) para que la edición en línea del panel siga editando el producto correcto aunque cambie el orden.
+- La tarjeta ya no tiene rótulo: quedó título, descripción, precio y botón de WhatsApp.
+
+### Verificación (141 comprobaciones automáticas, todas OK)
+
+| Suite | Resultado |
+|---|---|
+| `panel-test.js` (productos) | **36/36** |
+| `panel-test-otros.js` (hero, categorías, datos del local) | **15/15** |
+| `panel-pulido-check.js` (separador, encabezado, pistas, aro) | **10/10** |
+| `panel-categorias-test.js` (píldoras, lista de categorías, destacado, ids) | **27/27** |
+| `web-test.js` (catálogo, filtros, contador, buscador, estado vacío) | **28/28** |
+| `web-layout-check.js` (escritorio y móvil: sin desbordes ni superposiciones) | **15/15** |
+| `preview-inline-test.js` (edición en la vista previa: editar el producto correcto) | **10/10** |
+
+Sin errores de JavaScript en ningún caso. Los scripts de prueba viven en `%TEMP%\opencode\` (no se publican en el repo).
+
+### Estado
+
+Publicado: el commit de este trabajo sube el modelo, el panel, la web, el README y la guía de entrega. GitHub Pages reconstruye solo (~1 min) y el sitio queda con los filtros por mascota **y** por categoría.
+
+### Detalle de implementación (por si hay que tocarlo)
+
+- **Widget de píldoras** (`opciones-multiple`) en `admin/editor-form.js`: es el único campo que guarda un array de ids y NO es una lista. Por eso `construirObjeto()` lo intercepta **antes** de la rama de arrays: sin eso, «mascotas» y «categorías» se dibujaban como listas de texto.
+- **Opciones desde el modelo**: `BQForm.setDatos(datos)` le pasa el modelo completo al formulario; `opcionesDe("mascotas")` lee las tarjetas de la sección Categorías y `opcionesDe("categorias-producto")` la lista administrable de la sección Productos.
+- **Identificadores**: las tarjetas de la sección Categorías llevan un `id` estable (`perros`, `gatos`). Las tarjetas nuevas reciben uno solo; al renombrarlas, el `id` se rehace **solo si ningún producto lo usa** (si lo usan, se respeta para no romper los filtros).
+- **Orden en la web**: los destacados salen primero, pero cada tarjeta lleva `data-producto` con su índice real, para que la edición directa de la vista previa (`admin/editor-inline.js`) siga apuntando al producto correcto.
+- **Estado vacío y paginación**: ambos se rearman al filtrar (`repaginarTodo()`), así que el contador, la grilla y la paginación siempre cuentan lo mismo.

@@ -103,9 +103,11 @@
       C(q(".section-head .eyebrow"), ["eyebrow"]);
       C(q(".section-head h2"), ["titulo"]);
       C(q(".section-head .section-intro"), ["intro"]);
-      qa(".product-card").forEach(function (card, i) {
-        if (!(sec.productos || [])[i]) { return; }
-        C(card.querySelector(".product-tag"), ["productos", i, "etiqueta"]);
+      qa(".product-card").forEach(function (card) {
+        /* Los destacados se muestran primero en la web: la tarjeta trae su
+           índice real (data-producto) para editar el producto correcto. */
+        var i = parseInt(card.getAttribute("data-producto"), 10);
+        if (isNaN(i) || !(sec.productos || [])[i]) { return; }
         C(card.querySelector(".product-body h3"), ["productos", i, "titulo"]);
         C(card.querySelector(".product-body > p"), ["productos", i, "descripcion"]);
         C(card.querySelector(".product-price"), ["productos", i, "precio"]);

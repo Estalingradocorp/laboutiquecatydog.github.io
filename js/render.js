@@ -279,7 +279,49 @@
     );
   }
 
-  function buildProductoCard(p, sitio, ctaTexto, index) {
+  /* --------------------- Catálogo: helpers ---------------------------- */
+  /* Normaliza la lista de mascotas de un producto: acepta el formato
+     nuevo (array de ids: ["perros","gatos"]) y el viejo ("perro gato"). */
+  function idsDeMascotas(valor) {
+    if (Array.isArray(valor)) {
+      return valor.map(function (v) { return String(v).toLowerCase(); })
+        .filter(function (v) { return !!v; });
+    }
+    if (typeof valor === "string" && valor.trim()) {
+      return valor.toLowerCase().split(/[\s,]+/).filter(Boolean);
+    }
+    return [];
+  }
+
+  function idsDeCategorias(valor) {
+    if (Array.isArray(valor)) {
+      return valor.map(function (v) { return String(v).toLowerCase(); })
+        .filter(function (v) { return !!v; });
+    }
+    if (typeof valor === "string" && valor.trim()) {
+      return valor.toLowerCase().split(/[\s,]+/).filter(Boolean);
+    }
+    return [];
+  }
+
+  /* Precio: si el cliente escribe un número, se muestra con el signo peso
+     y separador de miles (12000 → $12.000). Si escribe texto libre
+     ("Desde $8.000", "Consultar"), se muestra tal cual. */
+  function formatearPrecio(valor) {
+    var txt = String(valor == null ? "" : valor).trim();
+    if (!txt) { return ""; }
+    if (/^\d{1,9}$/.test(txt)) {
+      return "$" + parseInt(txt, 10).toLocaleString("es-AR");
+    }
+    if (/^\d{1,9}[.,]\d{1,2}$/.test(txt)) {
+      var n = parseFloat(txt.replace(",", "."));
+      return "$" + n.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    return txt;
+  }
+
+  function buildProductoCard(p, sitio, ctaTexto, index, contexto) {
+    contexto = contexto || {};
     var fotos = p.fotos || [];
     var cta = set(ctaTexto) ? ctaTexto : "Consultar disponibilidad";
     var single = fotos.length < 2;
@@ -298,48 +340,133 @@
       );
     }).join("");
 
-    var precio = set(p.precio) ? '<span class="product-price">' + e(p.precio) + "</span>" : "";
+    var precio = formatearPrecio(p.precio);
+    var precioHtml = precio ? '<span class="product-price">' + e(precio) + "</span>" : "";
+
+    var mascotas = idsDeMascotas(p.mascotas);
+    var categorias = idsDeCategorias(p.categorias);
+
+    /* Texto que usa el buscador del catálogo */
+    var paraBuscar = [p.titulo, p.descripcion, p.precio]
+      .concat(contexto.nombresCategorias || [])
+      .filter(function (v) { return !!v; }).join(" ").toLowerCase();
+
+    var destacado = !!p.destacado;
+    var chipDestacado = destacado
+      ? '<span class="product-destacado">Destacado</span>'
+      : "";
 
     return (
-      '<article class="product-card" data-reveal data-pet="' + a(p.mascotas) + '" style="--reveal-delay:' + delay + 'ms">' +
+      '<article class="product-card' + (destacado ? " is-destacado" : "") + '" data-reveal' +
+      ' data-producto="' + (index || 0) + '"' +
+      ' data-pets="' + a(mascotas.join(" ")) + '"' +
+      ' data-cats="' + a(categorias.join(" ")) + '"' +
+      ' data-buscar="' + a(paraBuscar) + '"' +
+      ' style="--reveal-delay:' + delay + 'ms">' +
       '<div class="product-carousel" data-carousel aria-roledescription="carrusel" aria-label="' + a(label + p.titulo) + '">' +
       '<div class="pc-viewport">' + imgs + "</div>" +
       '<button class="pc-btn pc-prev" type="button" data-carousel-prev aria-label="Foto anterior"' + hidden + ">" + SVG_PREV + "</button>" +
       '<button class="pc-btn pc-next" type="button" data-carousel-next aria-label="Foto siguiente"' + hidden + ">" + SVG_NEXT + "</button>" +
       '<div class="pc-dots" data-carousel-dots role="group" aria-label="Seleccionar foto"></div>' +
+      chipDestacado +
       "</div>" +
       '<div class="product-body">' +
-      '<span class="product-tag">' + e(p.etiqueta) + "</span>" +
       "<h3>" + e(p.titulo) + "</h3>" +
       "<p>" + e(p.descripcion) + "</p>" +
-      precio +
+      precioHtml +
       '<a class="link-arrow" data-wa-link data-wa-msg="' + a(p.mensajeWhatsApp) + '">' + e(cta) + ' <span aria-hidden="true">&rarr;</span></a>' +
       "</div></article>"
     );
   }
 
-  function buildProductos(b, sitio) {
+  /* Los filtros salen de los datos: las mascotas, de las tarjetas de la
+     sección Categorías; las categorías de producto, de la lista
+     administrable de la propia sección de productos. */
+  function categoriasMascota(pagina) {
+    var salida = [];
+    var secciones = (pagina && pagina.secciones) || [];
+    secciones.forEach(function (s) {
+      if (!s || s.tipo !== "categorias" || !Array.isArray(s.tarjetas)) { return; }
+      s.tarjetas.forEach(function (t) {
+        if (!t || !t.titulo) { return; }
+        salida.push({ id: t.id || String(t.titulo).toLowerCase(), titulo: t.titulo });
+      });
+    });
+    return salida;
+  }
+
+  function categoriasProducto(b) {
+    var salida = [];
+    (b.categoriasProducto || []).forEach(function (c) {
+      if (!c || !c.titulo) { return; }
+      salida.push({ id: c.id || String(c.titulo).toLowerCase(), titulo: c.titulo });
+    });
+    return salida;
+  }
+
+  function buildProductos(b, sitio, pagina) {
+    var productos = b.productos || [];
+    var catsMascota = categoriasMascota(pagina);
+    var catsProducto = categoriasProducto(b);
+    var nombresCategorias = catsProducto.map(function (c) { return c.titulo; });
+
+    /* Los destacados van primero: son los que el local quiere mostrar.
+       Se guarda el índice original del producto (data-producto) para que
+       la edición en línea del panel siga apuntando al producto correcto. */
+    var ordenados = productos.map(function (p, i) { return { p: p, i: i }; });
+    ordenados.sort(function (x, y) {
+      return (y.p.destacado ? 1 : 0) - (x.p.destacado ? 1 : 0);
+    });
+
+    var cards = ordenados.map(function (item) {
+      return buildProductoCard(item.p, sitio, b.ctaTexto, item.i, { nombresCategorias: nombresCategorias });
+    }).join("");
+
+    /* --- Filtros: mascota + categoría de producto --- */
     var filtros = "";
     if (b.mostrarFiltros) {
-      filtros =
-        '<div class="product-filters" data-product-filters role="group" aria-label="Filtrar productos por mascota" data-reveal>' +
+      var chipsMascota = '<div class="filter-group" data-filter-group="mascota" role="group" aria-label="Filtrar por mascota">' +
         '<button class="filter-chip is-active" type="button" data-filter="all" aria-pressed="true">Todos</button>' +
-        '<button class="filter-chip" type="button" data-filter="perro" aria-pressed="false">Perros</button>' +
-        '<button class="filter-chip" type="button" data-filter="gato" aria-pressed="false">Gatos</button>' +
+        catsMascota.map(function (c) {
+          return '<button class="filter-chip" type="button" data-filter="' + a(c.id) + '" aria-pressed="false">' + e(c.titulo) + "</button>";
+        }).join("") +
         "</div>";
+
+      var chipsCategoria = "";
+      if (catsProducto.length) {
+        chipsCategoria = '<div class="filter-group" data-filter-group="categoria" role="group" aria-label="Filtrar por categoría de producto">' +
+          '<button class="filter-chip is-active" type="button" data-filter="all" aria-pressed="true">Todas</button>' +
+          catsProducto.map(function (c) {
+            return '<button class="filter-chip" type="button" data-filter="' + a(c.id) + '" aria-pressed="false">' + e(c.titulo) + "</button>";
+          }).join("") +
+          "</div>";
+      }
+
+      filtros = '<div class="product-filters" data-product-filters>' + chipsMascota + chipsCategoria + "</div>";
     }
 
-    var cards = (b.productos || []).map(function (p, i) {
-      return buildProductoCard(p, sitio, b.ctaTexto, i);
-    }).join("");
+    /* --- Buscador + contador --- */
+    var buscador = b.buscador === false ? "" :
+      '<form class="catalog-search" data-catalog-search role="search">' +
+      '<span class="buscar-lupa" aria-hidden="true">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>' +
+      "</span>" +
+      '<input type="search" class="catalog-search-input" placeholder="Buscar producto…" aria-label="Buscar productos" autocomplete="off" />' +
+      '<button type="button" class="catalog-search-clear" data-search-clear aria-label="Limpiar la búsqueda" hidden>&times;</button>' +
+      "</form>";
+
+    var toolbar = '<div class="catalog-toolbar">' + buscador + "</div>";
 
     /* Paginación del catálogo: JS la activa cuando hay más de 6 productos
        (bloques de 6 por página, respetando el filtro activo). */
     return (
       '<section class="section" id="' + a(b.id || "productos") + '">' +
       '<div class="container">' + sectionHead(b) +
+      toolbar +
       filtros +
+      '<p class="catalog-count" data-catalog-count>' + productos.length + " productos</p>" +
       '<div class="product-grid">' + cards + "</div>" +
+      '<p class="catalog-empty" data-catalog-empty hidden>No hay productos con esos filtros. Probá con otra búsqueda.</p>' +
       '<nav class="product-pagination" data-product-pagination hidden aria-label="Páginas del catálogo"></nav>' +
       "</div></section>"
     );
@@ -458,14 +585,16 @@
     contacto: buildContacto
   };
 
-  function buildBlock(b, sitio) {
+  function buildBlock(b, sitio, pagina) {
     if (!b || !b.tipo) return "";
     var fn = BLOCKS[b.tipo];
     if (!fn) {
       if (window.console) console.warn("Bloque sin renderizador:", b.tipo);
       return "";
     }
-    return fn(b, sitio);
+    /* Se pasa el modelo entero: el catálogo necesita las categorías de
+       mascota (de la sección «Categorías») para armar sus filtros. */
+    return fn(b, sitio, pagina);
   }
 
   /* ------------------------------- Render ------------------------------ */
@@ -488,7 +617,7 @@
       var secciones = (pagina && pagina.secciones) || [];
       /* Secciones marcadas como ocultas desde el panel no se muestran */
       var visibles = secciones.filter(function (b) { return !(b && b.oculto); });
-      main.innerHTML = visibles.map(function (b) { return buildBlock(b, sitio); }).join("");
+      main.innerHTML = visibles.map(function (b) { return buildBlock(b, sitio, pagina); }).join("");
     }
 
     var footer = document.querySelector(".site-footer");

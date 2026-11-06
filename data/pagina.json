@@ -61,7 +61,8 @@
           "alto": 720,
           "titulo": "Perros",
           "texto": "Alimento, accesorios, higiene y todo para el cuidado diario de tu perro.",
-          "enlace": "#productos"
+          "enlace": "#productos",
+          "id": "perros"
         },
         {
           "imagen": "assets/img/seccion-gatos.jpg",
@@ -70,7 +71,8 @@
           "alto": 698,
           "titulo": "Gatos",
           "texto": "Alimento, accesorios y cuidado pensado para el bienestar de tu gato.",
-          "enlace": "#productos"
+          "enlace": "#productos",
+          "id": "gatos"
         }
       ]
     },
@@ -81,13 +83,42 @@
       "titulo": "Un vistazo a nuestra selección",
       "intro": "Algunos de los productos que encontrás en el local. Escribinos por WhatsApp y te contamos qué hay disponible.",
       "mostrarFiltros": true,
+      "buscador": true,
+      "categoriasProducto": [
+        {
+          "id": "alimentos",
+          "titulo": "Alimentos"
+        },
+        {
+          "id": "descanso",
+          "titulo": "Descanso"
+        },
+        {
+          "id": "transporte",
+          "titulo": "Transporte"
+        },
+        {
+          "id": "accesorios",
+          "titulo": "Accesorios"
+        },
+        {
+          "id": "juguetes",
+          "titulo": "Juguetes"
+        }
+      ],
       "ctaTexto": "Consultar disponibilidad",
       "productos": [
         {
-          "etiqueta": "Perros y gatos",
           "titulo": "Alimento y nutrición",
           "descripcion": "Alimento balanceado y opciones de nutrición para cada etapa de tu mascota.",
-          "mascotas": "perro gato",
+          "mascotas": [
+            "perros",
+            "gatos"
+          ],
+          "categorias": [
+            "alimentos"
+          ],
+          "destacado": true,
           "precio": "",
           "mensajeWhatsApp": "Hola, quisiera consultar por alimento y nutrición para mascotas",
           "fotos": [
@@ -106,10 +137,16 @@
           ]
         },
         {
-          "etiqueta": "Descanso",
           "titulo": "Camas y descanso",
           "descripcion": "Camas y rincones cómodos para que tu mascota descanse tranquila.",
-          "mascotas": "perro gato",
+          "mascotas": [
+            "perros",
+            "gatos"
+          ],
+          "categorias": [
+            "descanso"
+          ],
+          "destacado": false,
           "precio": "",
           "mensajeWhatsApp": "Hola, quisiera consultar por camas y descanso para mascotas",
           "fotos": [
@@ -134,10 +171,15 @@
           ]
         },
         {
-          "etiqueta": "Mochilas y transportadoras",
           "titulo": "Transporte",
           "descripcion": "Mochilas y transportadoras con ventana, ideales para pasear y viajar con tu gato.",
-          "mascotas": "gato",
+          "mascotas": [
+            "gatos"
+          ],
+          "categorias": [
+            "transporte"
+          ],
+          "destacado": true,
           "precio": "",
           "mensajeWhatsApp": "Hola, quisiera consultar por mochilas transportadoras para mascotas",
           "fotos": [
@@ -156,10 +198,16 @@
           ]
         },
         {
-          "etiqueta": "Accesorios",
           "titulo": "Accesorios y más",
           "descripcion": "Collares, correas, comederos y todo lo que suma al día a día.",
-          "mascotas": "perro gato",
+          "mascotas": [
+            "perros",
+            "gatos"
+          ],
+          "categorias": [
+            "accesorios"
+          ],
+          "destacado": false,
           "precio": "",
           "mensajeWhatsApp": "Hola, quisiera consultar por accesorios para mascotas",
           "fotos": [
@@ -178,10 +226,15 @@
           ]
         },
         {
-          "etiqueta": "Juguetes",
           "titulo": "Juguetes para ellos",
           "descripcion": "Juguetes para el juego y el entretenimiento diario de tus mascotas.",
-          "mascotas": "perro",
+          "mascotas": [
+            "perros"
+          ],
+          "categorias": [
+            "juguetes"
+          ],
+          "destacado": false,
           "precio": "",
           "mensajeWhatsApp": "Hola, quisiera consultar por juguetes para mascotas",
           "fotos": [

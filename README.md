@@ -193,6 +193,9 @@ Es una lista `secciones`. **El orden de la lista es el orden en la web.** Cada s
 | Subir imágenes | Pestaña «Subir desde la PC»: canvas la optimiza (JPEG 82 %, máx. 1600 px + variante `-900` cuando el campo la usa; el logo mantiene PNG). Va al repo en **un solo commit por imagen** (Git Data API) |
 | Agregar / quitar / reordenar secciones | Lista de la izquierda: drag & drop, ↑ ↓, ocultar (ojo), duplicar, eliminar, «+ Agregar sección» |
 | Agregar / quitar / reordenar productos | En el formulario («+ Agregar producto», «Quitar este producto») o con la insignia ✕ que aparece sobre el producto en la vista previa |
+| Clasificar productos | En la ventanita de cada producto: **«Para qué mascotas»** (Perros / Gatos, con botón «Todos») y **«Categorías de producto»** (Alimentos, Descanso, Transporte, Accesorios, Juguetes… con botón «Ninguna»). Ambas se eligen con casillas y un producto puede llevar varias |
+| Administrar las categorías del catálogo | En la sección **Productos** está el bloque **«Categorías de producto»**: se agregan («+ Agregar categoría»), se renombran (editando el texto de la fila) y se borran (✕). Al borrar una categoría, los productos que la usaban la pierden; al renombrarla no se rompe nada |
+| Destacar productos | Interruptor **«Destacado (se muestra arriba de todo)»** por producto: los destacados salen primero en la grilla, con aro de color y etiqueta «Destacado» |
 | Fotos de productos y carrusel | Agregar, quitar, reordenar y reemplazar fotos por producto y por slide del carrusel |
 | Datos del local | Pestaña «Datos del local»: WhatsApp, dirección, horarios, redes, menú, pie (edita `data/sitio.json`) |
 | Volver atrás | **Deshacer/rehacer** tipo Word: flechas ↶ ↷ en la barra superior, `Ctrl+Z` / `Ctrl+Y` (también con el foco en la vista previa). Historial de hasta 60 pasos |
@@ -204,6 +207,28 @@ Es una lista `secciones`. **El orden de la lista es el orden en la web.** Cada s
 | Ayuda integrada | Botón **«?»** en la barra superior: guía corta y clara de todo el panel (textos, fotos, productos, publicar, deshacer, sesión) |
 
 **Modelo de datos del editor:** los cambios viven como **borrador** en el navegador (borrador automático en `localStorage`, se recupera al volver a entrar) hasta «Publicar cambios» o «Descartar». La **única excepción** es la subida de imágenes nuevas, que se commitea en el momento (una imagen en borrador no tiene sentido). Si el archivo cambió en GitHub mientras editabas (p. ej. desde Sveltia), al publicar se detecta el conflicto y se ofrece recargar o quedarse con el borrador.
+
+### El catálogo: categorías, filtros y destacados
+
+La sección **Productos** de la web es un catálogo con **dos grupos de filtros** (mascota y categoría de producto), **buscador**, **contador de resultados** y **estado vacío**. Todo sale del modelo, así que el panel manda y la web se arma sola:
+
+| Dato | Dónde se edita | Qué hace |
+|---|---|---|
+| `categorias.tarjetas[]` (id + título) | Sección **Categorías**: cada tarjeta es una mascota (Perros, Gatos…) | Sus `id` alimentan el filtro de mascota y las casillas «Para qué mascotas» de cada producto |
+| `categoriasProducto[]` (id + título) | Sección **Productos** → bloque «Categorías de producto» | Sus `id` alimentan el filtro de categoría de producto y las casillas «Categorías de producto» de cada producto |
+| `producto.mascotas[]` | Ventanita del producto → «Para qué mascotas» | A qué mascotas aplica el producto (vacío = todas) |
+| `producto.categorias[]` | Ventanita del producto → «Categorías de producto» | Categorías del producto (puede tener varias) |
+| `producto.destacado` | Ventanita del producto → «Destacado» | Sale primero en la grilla, con aro y etiqueta |
+| `producto.precio` | Ventanita del producto → «Precio (opcional)» | Número → se formatea (`12000` → `$12.000`); texto → se muestra tal cual («Consultar») |
+
+**Cómo se agrupan los productos:** una categoría **no** contiene productos: es una **etiqueta** que se le pone a cada producto. Si el negocio sube tres marcas de alimento, son tres productos independientes y los tres llevan la etiqueta «Alimentos»; el filtro «Alimentos» de la web los muestra juntos sin tocar nada más.
+
+**Reglas de combinación de filtros:** entre grupos va **Y** (mascota **y** categoría) y dentro de un grupo va **O** (perros **o** gatos). «Todos» / «Todas» = ese grupo no filtra.
+
+**Detalles de implementación:**
+- Las tarjetas de la sección Categorías llevan un `id` estable (`perros`, `gatos`). Si el cliente renombra una tarjeta y ningún producto la usa, el `id` se rehace solo; si ya hay productos apuntando a él, se respeta para no romper los filtros.
+- La web ordena los destacados primero, pero cada tarjeta conserva su índice real (`data-producto`) para que la edición directa en la vista previa del panel siga editando el producto correcto aunque cambie el orden.
+- La selección múltiple del panel es un **widget de píldoras** (`opciones-multiple`) que lee sus opciones del modelo; si no hay tarjetas de categorías, avisa en vez de fallar.
 
 ### Piezas
 
@@ -336,6 +361,7 @@ Sitio publicado en GitHub Pages con el contenido en JSON. **Todo el rediseño de
 | **W5d — cierre** | Push general a producción, smoke test, guías de Search Console + Google Business Profile, guía del cliente | Publicado |
 | **Auditoría 2026-11-03** | Seguridad (documentación interna ocultada), estabilidad (5 bugs del panel), UX (autoplay del hero, `noscript`, foco de modales, errores en español), imágenes optimizadas (−760 KB), `404.html` / `privacidad.html` / `manifest.json` | Publicado (`1006ac6`) |
 | **Huella legal 2026-11-05** | `terminos.html` publicada, `LICENSE` (titularidad de Estalingrado Corp, no se publica), pie con links legales y "Desarrollo y operación: Estalingrado Corp", modelo de contrato de licencia de uso y autorización de dominio (internos) | Publicado |
+| **Panel y catálogo 2026-11-06** | Rediseño del panel en modo «Textos» (productos como íconos + ventana de edición), corrección del aviso de privacidad y **catálogo con categorías**: categorías de producto administrables, filtros por mascota y por categoría, buscador, contador, estado vacío, precio formateado y productos destacados | Publicado |
 
 ---
 
@@ -349,7 +375,7 @@ Sitio publicado en GitHub Pages con el contenido en JSON. **Todo el rediseño de
 - [ ] **Datos de inscripción del cliente** (CUIT, Clave Fiscal nivel 2, razón social, domicilio legal, teléfono, email, DNI del representante) → también hacen falta para el dominio.
 - [ ] **Validar con el contador** el texto del libro de reclamos virtual (Ley 27.266: no se pudo verificar en fuente oficial) antes de publicarlo como exacto.
 - [ ] **Datos de Estalingrado Corp**: cuando la empresa tenga inscripción en ARCA, completar domicilio y CUIT en el contrato, la carta y los documentos legales.
-- [ ] Verificar si los filtros comparten bien "Camas" y "Accesorios" (mapeo `mascotas` es supuesto).
+- [x] ~~Verificar si los filtros comparten bien "Camas" y "Accesorios" (mapeo `mascotas` es supuesto)~~ → **hecho el 2026-11-06**: el mapeo dejó de ser supuesto. Cada producto declara sus `categorias` y sus `mascotas`, las listas son administrables desde el panel y el agrupamiento se verifica con pruebas automáticas (141 checks).
 - [ ] Verificar resolución de `assets/img/local.jpg` (449×660, podría verse baja como fondo).
 - [ ] Revisar recorte/encuadre de las fotos de producto.
 - [ ] Decidir si se limpia el Worker accidental `laboutiquecatydog-github-io` (ya no se usa; la web va por GitHub Pages).

@@ -369,52 +369,125 @@
   }
 
   /* ----------------------- Filtros de productos ------------------------- */
-  /* Botonera Todos / Perros / Gatos. Clasifica cada tarjeta por su atributo
-     [data-pet] (uno o varios valores separados por espacios: "perro gato").
-     Los productos compartidos se muestran en ambas categorías. Si no hay
-     markup de filtros, no hace nada (degradable). */
+  /* Botonera de filtros (mascota + categoría de producto) y buscador del
+     catálogo. Cada tarjeta lleva [data-pets] y [data-cats] con los ids
+     que le corresponden. Los filtros se combinan con Y entre grupos (una
+     mascota y una categoría) y con O dentro de cada grupo. El buscador
+     busca por título, descripción y nombre de categoría. */
   function setupProductFilters() {
-    var bar = document.querySelector("[data-product-filters]");
-    if (!bar) return;
+    var zona = document.querySelector("[data-product-filters]");
+    var buscador = document.querySelector("[data-catalog-search]");
+    var contador = document.querySelector("[data-catalog-count]");
+    var vacio = document.querySelector("[data-catalog-empty]");
+    var cards = Array.prototype.slice.call(document.querySelectorAll(".product-card[data-pets]"));
+    if (!cards.length) { return; }
 
-    var chips = Array.prototype.slice.call(bar.querySelectorAll("[data-filter]"));
-    var cards = Array.prototype.slice.call(document.querySelectorAll(".product-card[data-pet]"));
-    if (!chips.length || !cards.length) return;
+    var grupos = zona ? Array.prototype.slice.call(zona.querySelectorAll("[data-filter-group]")) : [];
+    var seleccion = {};
+    grupos.forEach(function (grupo) {
+      seleccion[grupo.getAttribute("data-filter-group")] = "all";
+    });
 
-    function apply(filter) {
-      Array.prototype.forEach.call(chips, function (chip) {
-        var active = chip.getAttribute("data-filter") === filter;
-        chip.classList.toggle("is-active", active);
-        chip.setAttribute("aria-pressed", active ? "true" : "false");
+    var texto = "";
+
+    function coincide(card) {
+      var pets = (card.getAttribute("data-pets") || "").split(/\s+/).filter(Boolean);
+      var cats = (card.getAttribute("data-cats") || "").split(/\s+/).filter(Boolean);
+      var m = seleccion.mascota;
+      var c = seleccion.categoria;
+      if (m && m !== "all" && pets.indexOf(m) === -1) { return false; }
+      if (c && c !== "all" && cats.indexOf(c) === -1) { return false; }
+      if (texto) {
+        var t = (card.getAttribute("data-buscar") || "").toLowerCase();
+        if (t.indexOf(texto) === -1) { return false; }
+      }
+      return true;
+    }
+
+    function hayFiltro() {
+      if (texto) { return true; }
+      return grupos.some(function (grupo) {
+        return seleccion[grupo.getAttribute("data-filter-group")] !== "all";
       });
-      Array.prototype.forEach.call(cards, function (card) {
-        var pets = (card.getAttribute("data-pet") || "").split(/\s+/);
-        var show = filter === "all" || pets.indexOf(filter) !== -1;
+    }
+
+    function aplicar() {
+      var visibles = 0;
+      cards.forEach(function (card) {
+        var show = coincide(card);
         card.hidden = !show;
-        /* Si la tarjeta vuelve a mostrarse, asegurar su animación de
-           aparición (pudo quedar sin observar mientras estaba oculta). */
-        if (show) card.classList.add("in-view");
+        if (show) {
+          visibles++;
+          /* Si la tarjeta vuelve a mostrarse, asegurar su animación de
+             aparición (pudo quedar sin observar mientras estaba oculta). */
+          card.classList.add("in-view");
+        }
       });
+
+      if (contador) {
+        contador.textContent = hayFiltro()
+          ? visibles + " de " + cards.length + (cards.length === 1 ? " producto" : " productos")
+          : cards.length + (cards.length === 1 ? " producto" : " productos");
+      }
+      if (vacio) { vacio.hidden = visibles !== 0; }
+
       /* El filtro cambia el catálogo visible: rearmar la paginación
          desde la primera página. */
       repaginarTodo();
     }
 
-    Array.prototype.forEach.call(chips, function (chip, i) {
-      chip.addEventListener("click", function () {
-        apply(chip.getAttribute("data-filter"));
-      });
-      chip.addEventListener("keydown", function (event) {
-        var dir = event.key === "ArrowRight" ? 1 : (event.key === "ArrowLeft" ? -1 : 0);
-        if (!dir) return;
-        event.preventDefault();
-        var next = chips[(i + dir + chips.length) % chips.length];
-        next.focus();
-        apply(next.getAttribute("data-filter"));
+    grupos.forEach(function (grupo) {
+      var nombre = grupo.getAttribute("data-filter-group");
+      var chips = Array.prototype.slice.call(grupo.querySelectorAll("[data-filter]"));
+      chips.forEach(function (chip, i) {
+        chip.addEventListener("click", function () {
+          seleccion[nombre] = chip.getAttribute("data-filter");
+          chips.forEach(function (otro) {
+            var active = otro === chip;
+            otro.classList.toggle("is-active", active);
+            otro.setAttribute("aria-pressed", active ? "true" : "false");
+          });
+          aplicar();
+        });
+        chip.addEventListener("keydown", function (event) {
+          var dir = event.key === "ArrowRight" ? 1 : (event.key === "ArrowLeft" ? -1 : 0);
+          if (!dir) { return; }
+          event.preventDefault();
+          var next = chips[(i + dir + chips.length) % chips.length];
+          next.focus();
+          next.click();
+        });
       });
     });
 
-    apply("all");
+    /* Buscador del catálogo */
+    if (buscador) {
+      var input = buscador.querySelector("input");
+      var limpiar = buscador.querySelector("[data-search-clear]");
+      var timer = 0;
+      if (input) {
+        input.addEventListener("input", function () {
+          window.clearTimeout(timer);
+          timer = window.setTimeout(function () {
+            texto = input.value.trim().toLowerCase();
+            if (limpiar) { limpiar.hidden = !input.value; }
+            aplicar();
+          }, 150);
+        });
+        /* Enter no envía el formulario: filtra y nada más. */
+        buscador.addEventListener("submit", function (event) { event.preventDefault(); });
+      }
+      if (limpiar) {
+        limpiar.addEventListener("click", function () {
+          if (input) { input.value = ""; input.focus(); }
+          texto = "";
+          limpiar.hidden = true;
+          aplicar();
+        });
+      }
+    }
+
+    aplicar();
   }
 
   /* ---------------- Paginación del catálogo ------------------------------- */
