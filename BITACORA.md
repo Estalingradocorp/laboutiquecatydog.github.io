@@ -440,3 +440,22 @@ Publicado: el commit de este trabajo sube el modelo, el panel, la web, el README
 - **Identificadores**: las tarjetas de la sección Categorías llevan un `id` estable (`perros`, `gatos`). Las tarjetas nuevas reciben uno solo; al renombrarlas, el `id` se rehace **solo si ningún producto lo usa** (si lo usan, se respeta para no romper los filtros).
 - **Orden en la web**: los destacados salen primero, pero cada tarjeta lleva `data-producto` con su índice real, para que la edición directa de la vista previa (`admin/editor-inline.js`) siga apuntando al producto correcto.
 - **Estado vacío y paginación**: ambos se rearman al filtrar (`repaginarTodo()`), así que el contador, la grilla y la paginación siempre cuentan lo mismo.
+
+### Caché de Cloudflare: por qué el sitio «no cambiaba»
+
+Al publicar, el sitio seguía mostrando los filtros viejos (solo «Todos / Perros / Gatos») aunque los datos ya tenían las categorías. La causa no era GitHub Pages sino la **caché del edge de Cloudflare**:
+
+| Archivo | `cf-cache-status` | `cache-control` | Efecto |
+|---|---|---|---|
+| `/` y `/admin/editor.html` | `DYNAMIC` | `max-age=600` | Se ve al instante (10 min en el navegador) |
+| `/js/*.js`, `/css/*.css` | **`HIT`** | **`max-age=14400`** | **4 horas de código viejo** |
+
+O sea: el navegador recibía **datos nuevos + JavaScript viejo**. El JS viejo no conocía `categoriasProducto`, así que el grupo de filtros por categoría no se dibujaba y el buscador tampoco aparecía.
+
+**Solución:** los CSS/JS ahora se piden con `?v=<hash>` (`css/styles.css?v=eff646fe`). Al cambiar la URL, la clave de caché cambia y el edge trae el archivo nuevo. La versión se genera sola con:
+
+```bash
+node tools/actualizar-version.js
+```
+
+El script es idempotente y hay que **commitear el `index.html` / `admin/editor.html` junto con el código nuevo**. Los datos (`data/*.json`) no tienen este problema: se piden con `cache: "no-store"`, así que lo que publica el panel se ve al instante.

@@ -282,6 +282,27 @@ El sitio es 100 % estático y se publica como **sitio de usuario**: el repositor
 
 Para actualizar, subí los cambios a `main` y Pages reconstruye automáticamente. Esto aplica también a los cambios que hace el panel: cada guardado es un commit y el sitio se republica.
 
+### ⚠️ Versionado de assets (importante al tocar CSS o JS)
+
+Cloudflare y los navegadores **cachean los `.js` y `.css` hasta 4 horas** (`cache-control: max-age=14400`). Si se sube código nuevo sin cambiar la URL, los visitantes siguen viendo la versión anterior: el sitio queda con **datos nuevos y código viejo** (por ejemplo, los filtros del catálogo no aparecen aunque los datos estén bien).
+
+Por eso los CSS/JS se referencian con un `?v=`:
+
+```html
+<link rel="stylesheet" href="css/styles.css?v=eff646fe" />
+<script src="js/render.js?v=eff646fe"></script>
+```
+
+**Regla:** después de cambiar `css/styles.css`, `js/render.js`, `js/main.js` o cualquier archivo de `admin/`, corré:
+
+```bash
+node tools/actualizar-version.js
+```
+
+Calcula un hash corto del contenido de esos archivos y reescribe el `?v=` en `index.html` y `admin/editor.html` (es idempotente: si nada cambió, no toca nada). **Commiteá el `index.html`/`admin/editor.html` junto con el código nuevo.**
+
+Los **datos** (`data/pagina.json`, `data/sitio.json`) no tienen este problema: `js/main.js` los pide con `cache: "no-store"`, así que el panel publica y el contenido se ve al instante.
+
 ---
 
 ## Imágenes
