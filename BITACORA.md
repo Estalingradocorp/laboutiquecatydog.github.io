@@ -335,3 +335,39 @@ Conclusión de seguridad: publicar ese párrafo **no abre una vía de ataque** (
 ### Documentación actualizada
 
 `README.md` (URLs y pendientes), `guias/ENTREGA-CLIENTE.md` (estado real del dominio, orden de entrega y pasos de Search Console) y esta bitácora.
+
+---
+
+## 2026-11-06 — Rediseño del panel de administración (modo «Textos»)
+
+### El problema que se reportó
+
+Al agregar un producto en el panel, **todas las tarjetas se desplegaban a la vez** y había que hacer mucho scroll horizontal. La causa real (reproducida con Edge headless + CDP sobre el servidor local) no era el scroll, sino dos cosas juntas:
+
+1. `admin/editor-form.js` → `construirLista()` creaba un `<details class="item-lista">` por ítem con `cajaItem.open = i === 0 || (valor || []).length === 1;` ⇒ **la primera foto de cada producto quedaba abierta** y el primer producto abierto medía **1192px** (campos + fotos anidadas, la primera foto 370px).
+2. Cualquier cambio estructural (`alCambiar(true)` → `actualizarFormularioActual()` → `construirSeccion`) **reconstruye el formulario entero** ⇒ se reabría el primer ítem y **se perdía la posición del scroll**.
+
+### Lo que quedó
+
+- **Productos como íconos**: cada producto es una miniatura con nombre y un dato (precio o destino), en una rejilla de 5 por fila. Con más de 10 productos la tira pasa sola a **carrusel horizontal** con flechas.
+- **Buscador en su propio bloque**, con contador (`5 productos` / `1 de 5` al filtrar) y estado vacío («Ningún resultado coincide con «…»»).
+- **Ventana de edición propia** (`#modal-item`, 520px) que abre al tocar un ícono: título, posición («Producto 3 de 5»), campos en dos columnas, fotos del producto en filas compactas con sus campos desplegables, y acciones **Subir / Bajar / Quitar** + **Listo**. Cierra con la X, con un clic afuera o con `Esc`.
+- **Edición en vivo**: al cambiar un campo, el ícono y el título de la ventana se actualizan al instante; el modelo se guarda solo.
+- **El mismo tratamiento para el hero y las categorías**: las fotos del carrusel se ven como íconos («Foto 1…») y las tarjetas de categorías como íconos con su título.
+- **Se mantiene el scroll** al agregar o quitar: `actualizarFormularioActual()` guarda y restaura el `scrollTop` de `#form-seccion`.
+- **Pulido general**: pestañas tipo píldora, radios más suaves (14/16/20px), sombras suaves, campos con foco más claro, ventana con fondo desenfocado, identidad con degradado y encabezado pegajoso a sangre (sin hueco arriba).
+- El **aro de color por mascota** (perro/gato/ambos) se ve como un overlay sobre la miniatura (antes la foto lo tapaba).
+
+### Verificación (61 comprobaciones automáticas, todas OK)
+
+| Suite | Resultado |
+|---|---|
+| `panel-test.js` (productos) | **36/36** |
+| `panel-test-otros.js` (hero, categorías, datos del local) | **15/15** |
+| `panel-pulido-check.js` (separador, encabezado, pistas, aro) | **10/10** |
+
+Sin errores de JavaScript en ningún caso. Los scripts viven en `%TEMP%\opencode\` (son de prueba, no se publican en el repo).
+
+### Archivos tocados
+
+`admin/editor-form.js` (listas compactas + ventana), `admin/editor.html` (markup de la ventana y texto de ayuda), `admin/editor.css` (estilos nuevos), `admin/editor.js` (`cerrarModal` coordina el cierre de la ventana y se preserva el scroll).

@@ -186,6 +186,24 @@
     </div>
   </div>
 
+  <!-- ============ MODAL: EDITAR PRODUCTO / FOTO / TARJETA ============ -->
+  <div id="modal-item" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modal-item-titulo">
+    <div class="modal-caja modal-caja-item">
+      <div class="modal-cabecera">
+        <div class="modal-cabecera-info">
+          <h2 id="modal-item-titulo">Item</h2>
+          <span id="modal-item-posicion" class="modal-sub"></span>
+        </div>
+        <button class="boton-x" type="button" aria-label="Cerrar">&times;</button>
+      </div>
+      <div id="modal-item-cuerpo" class="modal-item-cuerpo"></div>
+      <div class="modal-pie">
+        <div id="modal-item-acciones" class="modal-item-acciones"></div>
+        <button id="modal-item-listo" class="btn-rojo" type="button">Listo</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ============ MODAL: AYUDA DEL PANEL ============ -->
   <div id="modal-ayuda" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modal-ayuda-titulo">
     <div class="modal-caja">
@@ -206,7 +224,7 @@
         </section>
         <section class="ayuda-item">
           <h3>Secciones y productos</h3>
-          <p>La lista de la izquierda ordena la página: arrastrala para reordenar, el ojo la oculta, «+ Agregar sección» suma una nueva. Los productos se agregan o quitan desde el modo <strong>Textos</strong> o con la ✕ que aparece sobre el producto.</p>
+          <p>La lista de la izquierda ordena la página: arrastrala para reordenar, el ojo la oculta, «+ Agregar sección» suma una nueva. En el modo <strong>Textos</strong>, los productos se ven como íconos: tocá uno y se abre una ventana chica para editarlo (nombre, precio, fotos, WhatsApp). Desde la misma ventana lo movés con ↑ ↓ o lo quitás.</p>
         </section>
         <section class="ayuda-item">
           <h3>Publicar (o no)</h3>

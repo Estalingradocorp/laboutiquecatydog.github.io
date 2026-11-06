@@ -193,6 +193,12 @@
   function cerrarModal(modal) {
     if (!modal) { return; }
     modal.hidden = true;
+    /* La ventana de edición (producto, foto, tarjeta) guarda su estado en
+       el módulo de formularios: hay que soltarlo para que no se repinte
+       sola. */
+    if (modal.id === "modal-item" && window.BQItemCerrar) {
+      window.BQItemCerrar();
+    }
     if (FOCO_ANTES_MODAL && FOCO_ANTES_MODAL.focus) {
       try { FOCO_ANTES_MODAL.focus(); } catch (e2) {}
     }
@@ -216,6 +222,9 @@
     cerrarModal(modal);
     if (ok && accion) { accion(); }
   }
+
+  /* El formulario de productos también necesita pedir confirmación. */
+  window.BQConfirmar = pedirConfirmacion;
 
   /* ------------------------------- Estado ------------------------------- */
   var token = "";
@@ -1043,8 +1052,14 @@
       cerrarFormularioSeccion();
       return;
     }
-    BQForm.construirSeccion(datos.secciones[seccionAbierta], $("#form-seccion"),
+    /* Al reconstruir el formulario se pierde el lugar: si el cliente está
+       en el medio de la lista de productos y agrega uno, la pantalla saltaba
+       al principio y perdía todo el contexto. Se guarda y se devuelve. */
+    var caja = $("#form-seccion");
+    var scroll = caja ? caja.scrollTop : 0;
+    BQForm.construirSeccion(datos.secciones[seccionAbierta], caja,
       alCambiarSeccionForm, alCambiarImagenSeccion);
+    if (caja) { caja.scrollTop = scroll; }
   }
 
   function cerrarFormularioSeccion() {

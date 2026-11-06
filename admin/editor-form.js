@@ -396,6 +396,449 @@
     return caja;
   }
 
+  /* ======================================================================
+     LISTAS COMPACTAS: íconos + ventana de edición
+     ----------------------------------------------------------------------
+     Las tarjetas largas ocupaban todo el ancho, había que scrollear para
+     llegar al item buscado y al reconstruir el formulario se desplegaban
+     todas juntas. Ahora cada lista editable se ve como íconos chicos, en
+     filas o en carrusel cuando son muchos, y cada uno se edita en una
+     ventana chica y minimalista.
+     ====================================================================== */
+  var TEXTO_BUSQUEDA = "";
+  var MODAL_ITEM = null;
+
+  /* Cómo se muestra cada tipo de lista en la tira de íconos */
+  var TIPOS_LISTA = {
+    productos: {
+      singular: "Producto",
+      plural: "productos",
+      conMascotas: true,
+      conBuscador: true,
+      thumb: function (item) { return (item.fotos && item.fotos[0]) ? item.fotos[0].foto : null; },
+      nombre: function (item, i) { return (item && (item.titulo || item.etiqueta)) || ("Producto " + (i + 1)); },
+      meta: function (item) {
+        var partes = [];
+        if (item && item.precio && String(item.precio).trim()) { partes.push(String(item.precio)); }
+        var n = (item && item.fotos) ? item.fotos.length : 0;
+        partes.push(n === 1 ? "1 foto" : n + " fotos");
+        return partes.join(" · ");
+      },
+      buscable: function (item) {
+        if (!item || typeof item !== "object") { return ""; }
+        return [item.titulo, item.etiqueta, item.descripcion, item.precio]
+          .filter(function (v) { return !!v; }).join(" ").toLowerCase();
+      },
+      quitarTexto: function (item) {
+        var nombre = (item && (item.titulo || item.etiqueta)) || "este producto";
+        return "¿Quitar el producto «" + nombre + "»? Deja de mostrarse cuando publiques.";
+      }
+    },
+    slides: {
+      singular: "Foto",
+      plural: "fotos",
+      thumb: function (item) { return item ? item.imagen : null; },
+      nombre: function (item, i) { return "Foto " + (i + 1); },
+      meta: function (item) {
+        if (!item) { return ""; }
+        return item.alt || (item.ancho ? item.ancho + "×" + item.alto : "");
+      },
+      quitarTexto: function () { return "¿Quitar esta foto del carrusel?"; }
+    },
+    tarjetas: {
+      singular: "Tarjeta",
+      plural: "tarjetas",
+      thumb: function (item) { return item ? item.imagen : null; },
+      nombre: function (item, i) { return (item && item.titulo) || ("Tarjeta " + (i + 1)); },
+      meta: function (item) { return (item && item.texto) || ""; },
+      quitarTexto: function (item) {
+        var nombre = (item && item.titulo) || "esta tarjeta";
+        return "¿Quitar la tarjeta «" + nombre + "»?";
+      }
+    }
+  };
+
+  function tipoDe(clave) { return TIPOS_LISTA[clave] || TIPOS_LISTA.productos; }
+
+  function urlImagen(ruta) {
+    try { return new URL(ruta, location.origin).href; } catch (e) { return ""; }
+  }
+
+  /* Un item se ve como un ícono: foto + nombre + un dato. */
+  function crearTileItem(clave, item, i, alAbrir) {
+    var tipo = tipoDe(clave);
+    item = item || {};
+    var tile = crear("button");
+    tile.type = "button";
+    tile.className = "prod-tile" +
+      (tipo.conMascotas ? " " + (claseMascota(item) || "pet-ambos") : "");
+    tile.setAttribute("data-indice", String(i));
+    tile.setAttribute("aria-label", "Editar " + nombreDeItem(clave, item, i));
+
+    var thumb = crear("span");
+    thumb.className = "prod-tile-thumb";
+    var ruta = tipo.thumb(item);
+    if (ruta) {
+      var im = crear("img");
+      im.alt = "";
+      im.loading = "lazy";
+      im.src = urlImagen(ruta);
+      if (window.BQ_SUBIDAS && window.BQ_SUBIDAS[ruta]) { im.src = window.BQ_SUBIDAS[ruta]; }
+      im.onerror = function () { im.hidden = true; };
+      thumb.appendChild(im);
+    } else {
+      thumb.classList.add("is-vacia");
+    }
+    tile.appendChild(thumb);
+
+    var nombre = crear("span");
+    nombre.className = "prod-tile-nombre";
+    nombre.textContent = tipo.nombre(item, i);
+    tile.appendChild(nombre);
+
+    var meta = crear("span");
+    meta.className = "prod-tile-meta";
+    meta.textContent = tipo.meta(item);
+    tile.appendChild(meta);
+
+    tile.addEventListener("click", function () { alAbrir(i); });
+    return tile;
+  }
+
+  /* Filtra los íconos (solo donde hay buscador) y actualiza el contador. */
+  function aplicarBusqueda(caja, clave, valor) {
+    var tipo = tipoDe(clave);
+    var texto = tipo.conBuscador ? (TEXTO_BUSQUEDA || "").toLowerCase().trim() : "";
+    var tiles = Array.prototype.slice.call(caja.querySelectorAll(".prod-tile"));
+    var visibles = 0;
+    tiles.forEach(function (tile) {
+      var i = parseInt(tile.getAttribute("data-indice"), 10);
+      var ok = !texto || (tipo.buscable ? tipo.buscable(valor[i]) : "").indexOf(texto) !== -1;
+      tile.hidden = !ok;
+      if (ok) { visibles++; }
+    });
+
+    var contador = caja.querySelector(".bloque-contador");
+    if (contador) {
+      contador.textContent = texto
+        ? visibles + " de " + valor.length
+        : (valor.length ? valor.length + " " + tipo.plural : "");
+    }
+
+    var vacio = caja.querySelector(".nota-vacia");
+    if (vacio) {
+      if (!valor.length) {
+        vacio.textContent = "Todavía no hay " + tipo.plural + ". Agregá el primero con el botón de abajo.";
+        vacio.hidden = false;
+      } else if (texto && !visibles) {
+        vacio.textContent = "Ningún resultado coincide con «" + TEXTO_BUSQUEDA + "».";
+        vacio.hidden = false;
+      } else {
+        vacio.hidden = true;
+      }
+    }
+  }
+
+  function construirListaCompacta(clave, valor, raiz, ruta, contenedor, alCambiar, alCambiarImagen, contexto) {
+    var tipo = tipoDe(clave);
+    var caja = crear("div");
+    caja.className = "lista-campo bloque-productos";
+
+    /* --- Encabezado del bloque (nombre + contador) --- */
+    var cabecera = crear("div");
+    cabecera.className = "bloque-cabecera";
+    var titulo = crear("h3");
+    titulo.className = "lista-titulo";
+    titulo.textContent = DICT_LISTAS[clave] || tipo.plural;
+    cabecera.appendChild(titulo);
+    var contador = crear("span");
+    contador.className = "bloque-contador";
+    cabecera.appendChild(contador);
+    caja.appendChild(cabecera);
+
+    /* --- Buscador: bloque propio, separado del nombre --- */
+    if (tipo.conBuscador) {
+      var bloqueBuscar = crear("div");
+      bloqueBuscar.className = "bloque-buscar";
+      var lupa = crear("span");
+      lupa.className = "buscar-lupa";
+      lupa.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>';
+      var buscar = crear("input");
+      buscar.type = "text";
+      buscar.className = "lista-buscar";
+      buscar.placeholder = "Buscar " + tipo.singular.toLowerCase() + " por nombre…";
+      buscar.value = TEXTO_BUSQUEDA;
+      buscar.setAttribute("aria-label", "Buscar " + tipo.singular.toLowerCase() + " por nombre");
+      bloqueBuscar.appendChild(lupa);
+      bloqueBuscar.appendChild(buscar);
+      caja.appendChild(bloqueBuscar);
+      buscar.addEventListener("input", function () {
+        TEXTO_BUSQUEDA = buscar.value;
+        aplicarBusqueda(caja, clave, valor);
+      });
+    }
+
+    /* --- Íconos: rejilla con filas, o carrusel si son muchos --- */
+    var esCarrusel = valor.length > 10;
+    var wrap = crear("div");
+    wrap.className = "prod-tira-wrap";
+    var tira = crear("div");
+    tira.className = "prod-tira" + (esCarrusel ? " es-carrusel" : "");
+    valor.forEach(function (item, i) {
+      tira.appendChild(crearTileItem(clave, item, i, function (indice) {
+        abrirModalItem(indice, clave, valor, raiz, ruta, alCambiar, alCambiarImagen, contexto);
+      }));
+    });
+    wrap.appendChild(tira);
+
+    if (esCarrusel) {
+      var izq = crear("button");
+      izq.type = "button";
+      izq.className = "prod-flecha prod-flecha-izq";
+      izq.setAttribute("aria-label", tipo.plural + " anteriores");
+      izq.innerHTML = "&lsaquo;";
+      var der = crear("button");
+      der.type = "button";
+      der.className = "prod-flecha prod-flecha-der";
+      der.setAttribute("aria-label", tipo.plural + " siguientes");
+      der.innerHTML = "&rsaquo;";
+      var paso = function (dir) {
+        tira.scrollBy({ left: dir * Math.max(220, Math.round(tira.clientWidth * 0.8)), behavior: "smooth" });
+      };
+      izq.addEventListener("click", function () { paso(-1); });
+      der.addEventListener("click", function () { paso(1); });
+      wrap.appendChild(izq);
+      wrap.appendChild(der);
+    }
+    caja.appendChild(wrap);
+
+    var vacio = crear("p");
+    vacio.className = "nota nota-vacia";
+    caja.appendChild(vacio);
+
+    /* --- Agregar item --- */
+    if (window.BQMedia) {
+      var agregar = crear("button");
+      agregar.type = "button";
+      agregar.className = "btn-borde btn-bloque lista-agregar";
+      agregar.textContent = "+ " + (AGREGAR_TEXTO[clave] || "Agregar");
+      agregar.addEventListener("click", function () {
+        window.BQMedia.abrir({
+          titulo: AGREGAR_TITULO[clave] || "Elegir imagen",
+          tipo: "foto",
+          conSrcset: clave === "slides",
+          alElegir: function (media) {
+            valor.push(plantillaDe(clave, media));
+            alCambiar(true);
+            /* El item nuevo se abre directo para completar los datos */
+            abrirModalItem(valor.length - 1, clave, valor, raiz, ruta, alCambiar, alCambiarImagen, contexto);
+          }
+        });
+      });
+      caja.appendChild(agregar);
+    }
+
+    contenedor.appendChild(caja);
+    aplicarBusqueda(caja, clave, valor);
+  }
+
+  /* -------------------- Ventana de edición del item --------------------- */
+  function abrirModalItem(indice, clave, valor, raiz, ruta, alCambiar, alCambiarImagen, contexto) {
+    var modal = document.getElementById("modal-item");
+    if (!modal || !valor[indice]) { return; }
+    MODAL_ITEM = {
+      indice: indice, clave: clave, valor: valor, raiz: raiz, ruta: ruta,
+      alCambiar: alCambiar, alCambiarImagen: alCambiarImagen, contexto: contexto
+    };
+    pintarModalItem();
+    if (window.BQModales && window.BQModales.abrir) {
+      window.BQModales.abrir(modal);
+    } else {
+      modal.hidden = false;
+    }
+  }
+
+  function cerrarModalItem() {
+    var modal = document.getElementById("modal-item");
+    MODAL_ITEM = null;
+    if (modal) {
+      if (window.BQModales && window.BQModales.cerrar) { window.BQModales.cerrar(modal); }
+      else { modal.hidden = true; }
+    }
+  }
+
+  function pintarModalItem() {
+    var m = MODAL_ITEM;
+    if (!m) { return; }
+    var tipo = tipoDe(m.clave);
+    var cuerpo = document.getElementById("modal-item-cuerpo");
+    var titulo = document.getElementById("modal-item-titulo");
+    var item = m.valor[m.indice];
+    if (!item) { cerrarModalItem(); return; }
+
+    if (titulo) {
+      titulo.textContent = tipo.nombre(item, m.indice);
+    }
+    var posicion = document.getElementById("modal-item-posicion");
+    if (posicion) {
+      posicion.textContent = tipo.singular + " " + (m.indice + 1) + " de " + m.valor.length;
+    }
+
+    if (cuerpo) {
+      cuerpo.innerHTML = "";
+      construirObjeto(item, m.raiz, m.ruta.concat([m.indice]), cuerpo,
+        m.alCambiar, m.alCambiarImagen, { lista: m.clave, fotosCompactas: true });
+      /* Al escribir, el ícono de la lista y el título de la ventana se
+         actualizan al instante: si no, el cliente edita "Transporte" y ve
+         que el ícono sigue diciendo el nombre viejo. */
+      cuerpo.addEventListener("input", function () { sincronizarItem(m.indice); });
+    }
+
+    var acciones = document.getElementById("modal-item-acciones");
+    if (acciones) {
+      acciones.innerHTML = "";
+      acciones.appendChild(botonMini("↑", "Subir en la lista", function () { moverItem(-1); }));
+      acciones.appendChild(botonMini("↓", "Bajar en la lista", function () { moverItem(1); }));
+      var quitar = crear("button");
+      quitar.type = "button";
+      quitar.className = "lista-quitar";
+      quitar.textContent = "Quitar " + tipo.singular.toLowerCase();
+      quitar.addEventListener("click", function () { quitarItem(); });
+      acciones.appendChild(quitar);
+    }
+  }
+
+  /* Refleja en el ícono y en el título de la ventana los cambios hechos
+     dentro de la ventana (sin esperar a que se reconstruya el formulario). */
+  function sincronizarItem(indice) {
+    var m = MODAL_ITEM;
+    if (!m) { return; }
+    var tipo = tipoDe(m.clave);
+    var item = m.valor[indice];
+    if (!item) { return; }
+
+    var tile = document.querySelector(".prod-tile[data-indice=\"" + indice + "\"]");
+    if (tile) {
+      var etiqueta = tile.querySelector(".prod-tile-nombre");
+      if (etiqueta) { etiqueta.textContent = tipo.nombre(item, indice); }
+      var meta = tile.querySelector(".prod-tile-meta");
+      if (meta) { meta.textContent = tipo.meta(item); }
+    }
+
+    var titulo = document.getElementById("modal-item-titulo");
+    if (titulo) { titulo.textContent = tipo.nombre(item, indice); }
+  }
+
+  function moverItem(delta) {
+    var m = MODAL_ITEM;
+    if (!m) { return; }
+    var i = m.indice;
+    if (delta < 0 && i <= 0) { return; }
+    if (delta > 0 && i >= m.valor.length - 1) { return; }
+    var sacado = m.valor.splice(i, 1)[0];
+    m.valor.splice(i + delta, 0, sacado);
+    m.indice = i + delta;
+    m.alCambiar(true);
+  }
+
+  function quitarItem() {
+    var m = MODAL_ITEM;
+    if (!m) { return; }
+    var item = m.valor[m.indice] || {};
+    var quitar = function () {
+      m.valor.splice(m.indice, 1);
+      cerrarModalItem();
+      m.alCambiar(true);
+    };
+    if (window.BQConfirmar) {
+      window.BQConfirmar(tipoDe(m.clave).quitarTexto(item), quitar);
+    } else {
+      quitar();
+    }
+  }
+
+  /* -------------------- Fotos del producto (compactas) -------------------- */
+  function construirListaFotos(clave, valor, raiz, ruta, contenedor, alCambiar, alCambiarImagen, contexto) {
+    var caja = crear("div");
+    caja.className = "lista-campo lista-fotos";
+
+    var cabecera = crear("div");
+    cabecera.className = "bloque-cabecera";
+    var titulo = crear("h3");
+    titulo.className = "lista-titulo";
+    titulo.textContent = DICT_LISTAS[clave] || "Fotos";
+    cabecera.appendChild(titulo);
+    var contador = crear("span");
+    contador.className = "bloque-contador";
+    contador.textContent = valor.length ? valor.length + " fotos" : "";
+    cabecera.appendChild(contador);
+    caja.appendChild(cabecera);
+
+    valor.forEach(function (foto, i) {
+      var fila = crear("div");
+      fila.className = "foto-fila";
+
+      var thumb = crear("img");
+      thumb.className = "foto-thumb";
+      thumb.alt = "";
+      if (foto && foto.foto) {
+        thumb.src = urlImagen(foto.foto);
+        if (window.BQ_SUBIDAS && window.BQ_SUBIDAS[foto.foto]) { thumb.src = window.BQ_SUBIDAS[foto.foto]; }
+        thumb.onerror = function () { thumb.hidden = true; };
+      }
+      fila.appendChild(thumb);
+
+      var info = crear("div");
+      info.className = "foto-info";
+      var nombre = crear("strong");
+      nombre.textContent = "Foto " + (i + 1);
+      info.appendChild(nombre);
+      var detalle = crear("small");
+      var medidas = (foto && foto.ancho) ? (foto.ancho + "×" + foto.alto) : "sin medidas";
+      detalle.textContent = medidas + (foto && foto.alt ? " · " + foto.alt : "");
+      info.appendChild(detalle);
+      fila.appendChild(info);
+
+      fila.appendChild(botonMini("✎", "Editar los datos de esta foto", function () {
+        var campos = fila.nextElementSibling;
+        if (campos) { campos.hidden = !campos.hidden; }
+      }));
+      fila.appendChild(botonMini("✕", "Quitar esta foto", function () {
+        valor.splice(i, 1);
+        alCambiar(true);
+      }, true));
+
+      caja.appendChild(fila);
+
+      /* Los datos de la foto se despliegan debajo al pedirlos */
+      var campos = crear("div");
+      campos.className = "foto-campos";
+      campos.hidden = true;
+      construirObjeto(foto, raiz, ruta.concat([i]), campos, alCambiar, alCambiarImagen, { lista: "fotos" });
+      caja.appendChild(campos);
+    });
+
+    if (window.BQMedia) {
+      var agregar = crear("button");
+      agregar.type = "button";
+      agregar.className = "btn-borde btn-bloque lista-agregar";
+      agregar.textContent = "+ Agregar foto";
+      agregar.addEventListener("click", function () {
+        window.BQMedia.abrir({
+          titulo: "Foto del producto",
+          tipo: "foto",
+          alElegir: function (media) {
+            valor.push({ foto: media.imagen, alt: "", ancho: media.ancho || 0, alto: media.alto || 0 });
+            alCambiar(true);
+          }
+        });
+      });
+      caja.appendChild(agregar);
+    }
+
+    contenedor.appendChild(caja);
+  }
+
   /* ------------------------ Listas de items -------------------------------- */
   function nombreDeItem(clave, item, i) {
     if (clave === "slides") { return "Foto " + (i + 1); }
@@ -509,6 +952,13 @@
   function construirLista(clave, valor, raiz, ruta, contenedor, alCambiar, alCambiarImagen, contexto) {
     var regla = REGLAS[clave];
 
+    /* Productos, fotos del carrusel y tarjetas: íconos + ventana de
+       edición (ya no tarjetas largas que se desplegaban todas juntas) */
+    if (TIPOS_LISTA[clave]) {
+      construirListaCompacta(clave, valor, raiz, ruta, contenedor, alCambiar, alCambiarImagen, contexto);
+      return;
+    }
+
     /* Listas de texto plano (viñetas, redes) usan un solo campo */
     if (regla && (regla.tipo === "lista-texto" || regla.tipo === "orden-redes")) {
       contenedor.appendChild(crearCampo(clave, valor, raiz, ruta, alCambiar, contexto));
@@ -532,28 +982,6 @@
     }
 
     var esEditable = EDITABLES[clave] && Array.isArray(valor);
-
-    /* Búsqueda: aparece solo en productos con 4 o más items (el catálogo
-       crece y encontrar uno entre muchos se vuelve difícil) */
-    if (clave === "productos" && valor && valor.length >= 4) {
-      var buscar = crear("input");
-      buscar.type = "text";
-      buscar.className = "lista-buscar";
-      buscar.placeholder = "Buscar producto…";
-      buscar.setAttribute("aria-label", "Buscar producto por nombre");
-      buscar.addEventListener("input", function () {
-        var texto = buscar.value.toLowerCase().trim();
-        var items = caja.querySelectorAll(".item-lista");
-        Array.prototype.forEach.call(items, function (item) {
-          if (item.closest(".lista-buscar")) { return; }
-          var strong = item.querySelector(".item-resumen-info strong");
-          var visible = !texto ||
-            (strong && strong.textContent.toLowerCase().indexOf(texto) !== -1);
-          item.style.display = visible ? "" : "none";
-        });
-      });
-      caja.appendChild(buscar);
-    }
 
     (valor || []).forEach(function (item, i) {
       var cajaItem = crear("details");
@@ -602,19 +1030,6 @@
           valor.splice(i, 1);
           alCambiar(true);
         }, true));
-
-        /* Productos: además del ✕, un botón claro con texto */
-        if (clave === "productos") {
-          var quitarProducto = crear("button");
-          quitarProducto.type = "button";
-          quitarProducto.className = "lista-quitar";
-          quitarProducto.textContent = "Quitar este producto";
-          quitarProducto.addEventListener("click", function () {
-            valor.splice(i, 1);
-            alCambiar(true);
-          });
-          acciones.appendChild(quitarProducto);
-        }
 
         cajaItem.appendChild(acciones);
       }
@@ -679,14 +1094,21 @@
       var subRuta = ruta.concat([clave]);
 
       if (Array.isArray(valor)) {
-        /* Separador visual antes de listas: marca el cambio de zona */
-        if (EDITABLES[clave]) {
+        /* Separador visual antes de listas (el bloque de íconos ya trae su
+           propio título, así que ahí no hace falta) */
+        if (EDITABLES[clave] && !TIPOS_LISTA[clave] &&
+            !(clave === "fotos" && contexto && contexto.fotosCompactas)) {
           var separador = crear("div");
           separador.className = "form-separador";
           var sepLabel = crear("span");
           sepLabel.textContent = DICT_LISTAS[clave] || etiquetaDe(clave);
           separador.appendChild(sepLabel);
           contenedor.appendChild(separador);
+        }
+        /* Las fotos del producto se listan compactas, no como tarjetas */
+        if (clave === "fotos" && contexto && contexto.fotosCompactas) {
+          construirListaFotos(clave, valor, raiz, subRuta, contenedor, alCambiar, alCambiarImagen, contexto);
+          return;
         }
         construirLista(clave, valor, raiz, subRuta, contenedor, alCambiar, alCambiarImagen, contexto);
         return;
@@ -728,6 +1150,24 @@
   }
 
   /* --------------------------- API pública -------------------------------- */
+  /* La ventana de edición se cierra desde el botón «Listo» y desde los
+     atajos globales del panel (X, clic afuera, Escape). El editor avisa
+     cuando la cierra para soltar el estado. */
+  window.BQItemCerrar = function () { MODAL_ITEM = null; };
+
+  function conectarModalItem() {
+    var listo = document.getElementById("modal-item-listo");
+    if (listo && !listo.getAttribute("data-conectado")) {
+      listo.setAttribute("data-conectado", "1");
+      listo.addEventListener("click", function () { cerrarModalItem(); });
+    }
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", conectarModalItem);
+  } else {
+    conectarModalItem();
+  }
+
   window.BQForm = {
     /* Formulario de una sección de la portada (data/pagina.json)
        alCambiar(esEstructural) · alCambiarImagen(ruta, config) */
@@ -773,6 +1213,10 @@
       cuerpo.className = "form-cuerpo";
       construirObjeto(seccion, seccion, [], cuerpo, alCambiar, alCambiarImagen, contexto, identidadKeys);
       contenedor.appendChild(cuerpo);
+
+      /* Si el formulario se reconstruye con la ventana de producto abierta,
+         su contenido se repinta para que no quede desactualizado. */
+      if (MODAL_ITEM) { pintarModalItem(); }
     },
 
     /* Formulario de datos del local (data/sitio.json) */
