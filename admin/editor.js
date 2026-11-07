@@ -17,7 +17,7 @@
 
   /* ----------------------------- Constantes ----------------------------- */
   var WORKER_BASE = "https://sveltia-cms-auth.laboutiquecatydog10.workers.dev";
-  var REPO = "laboutiquecatydog/laboutiquecatydog.github.io";
+  var REPO = "Estalingradocorp/laboutiquecatydog.github.io";
   var BRANCH = "main";
   var ARCHIVO_PAGINA = "data/pagina.json";
   var ARCHIVO_SITIO = "data/sitio.json";
@@ -366,7 +366,7 @@
 
   function iniciarLogin() {
     var dominio = location.hostname;
-    var url = WORKER_BASE + "/auth?provider=github&site_id=" + encodeURIComponent(dominio) +
+    var url = WORKER_BASE + "/auth?provider=password&site_id=" + encodeURIComponent(dominio) +
       "&client=editor&redirect=" + encodeURIComponent(location.origin);
     /* Navegación en la misma pestaña: sin bloqueos de ventanas emergentes.
        Guardamos que venimos del login para restaurar la vista al volver. */
