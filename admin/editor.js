@@ -367,7 +367,7 @@
   function iniciarLogin() {
     var dominio = location.hostname;
     var url = WORKER_BASE + "/auth?provider=password&site_id=" + encodeURIComponent(dominio) +
-      "&client=editor&redirect=" + encodeURIComponent(location.origin);
+      "&client=editor&redirect=" + encodeURIComponent(location.href);
     /* Navegación en la misma pestaña: sin bloqueos de ventanas emergentes.
        Guardamos que venimos del login para restaurar la vista al volver. */
     try { sessionStorage.setItem("BQ_LOGIN", "1"); } catch (e2) {}
