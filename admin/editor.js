@@ -16,7 +16,7 @@
   "use strict";
 
   /* ----------------------------- Constantes ----------------------------- */
-  var WORKER_BASE = "https://sveltia-cms-auth.laboutiquecatydog10.workers.dev";
+  var WORKER_BASE = "https://sveltia-cms-auth.nicotips27.workers.dev";
   var REPO = "Estalingradocorp/laboutiquecatydog.github.io";
   var BRANCH = "main";
   var ARCHIVO_PAGINA = "data/pagina.json";
