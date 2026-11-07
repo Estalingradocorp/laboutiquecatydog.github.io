@@ -459,3 +459,59 @@ node tools/actualizar-version.js
 ```
 
 El script es idempotente y hay que **commitear el `index.html` / `admin/editor.html` junto con el código nuevo**. Los datos (`data/*.json`) no tienen este problema: se piden con `cache: "no-store"`, así que lo que publica el panel se ve al instante.
+
+---
+
+## 2026-11-07 — Huella legal como enlace, publicación verificada y revisión de estado
+
+Tanda de cierre: el trabajo de la entrada anterior se **publicó y se verificó contra la web real**, se agregó el enlace de la empresa en el pie y se documentó el estado del proyecto para la revisión del CEO (sin tocar el código de la aplicación).
+
+### 1. Huella legal del pie como enlace (`60b6302`)
+
+- `data/sitio.json`: nueva clave **`footer.empresaUrl`** = `https://estalingradocorp.com.ar/`.
+- `js/render.js` (`buildFooter`): el texto del copyright se envuelve en `<a class="enlace-copyright" target="_blank" rel="noopener">` **solo si** hay `empresaUrl` cargado; si no, queda como texto plano (sin cambios de comportamiento para nadie que no lo configure).
+- `css/styles.css`: `.footer-bottom a.enlace-copyright` hereda el color del pie y se subraya al pasar el mouse (sigue siendo texto, no un botón).
+- `admin/editor-form.js`: nueva regla `REGLAS.empresaUrl` → campo **«Enlace de la empresa (pie)»** en la pestaña «Datos del local», junto al aviso de copyright.
+- Versión de assets regenerada: `?v=c1c7c0ed`.
+- **Verificado en producción (10/10)**: el pie muestra «© 2026 Estalingrado Corp. Todos los derechos reservados.» como enlace, apunta a `https://estalingradocorp.com.ar/`, abre en pestaña nueva con `rel="noopener"`, conserva el texto, hereda el color y el panel expone el campo con la URL cargada. 0 errores de JavaScript.
+
+### 2. Publicación y estado de los remotos
+
+- Commits en `main`: `02b75ce` (catálogo con categorías) → `2391b8f` (versionado de assets) → `60b6302` (huella legal).
+- `origin` (GitHub Pages) y `respaldo` (repo privado de respaldo) quedaron **con contenido idéntico** (`git diff --stat origin/main respaldo/main` vacío).
+- GitHub Pages: `built`; la web responde 200 y sirve `data/pagina.json` con `categoriasProducto`.
+- **Verificación en producción**: `prod-check.js` **9/9** (0 errores JS), `web-test.js` **28/28**, `web-layout-check.js` **15/15**, `panel-categorias-test.js` **27/27** contra el panel publicado, `huella-test.js` **10/10**.
+
+### 3. Problema abierto: los borradores viejos no se migran (NO corregido)
+
+**Lo que se reportó**: en el panel, la sección de productos **no muestra el bloque «Categorías de producto»**, aunque la web sí tiene los filtros. No es un problema de la web: es el panel.
+
+**Causa raíz (verificada leyendo el código):**
+
+1. `admin/editor.js` (`cargarEditor`): al entrar, el panel recupera el borrador local (`localStorage["BQ_DRAFT_PAGINA"]`) **tal cual está**, sin adaptarlo al formato actual:
+   ```js
+   var guardado = JSON.parse(crudo);
+   if (guardado && Array.isArray(guardado.secciones)) { datos = guardado; }
+   ```
+2. El bloque «Categorías de producto» se dibuja a partir de la clave `categoriasProducto` de la sección (`admin/editor-form.js` → `construirListaTexto`, con `DICT_LISTAS.categoriasProducto`). Si esa clave **no existe** en el modelo, no hay bloque.
+3. El borrador viejo tiene el modelo anterior (el de `git show 94e3542:data/pagina.json`): productos con `etiqueta` y `mascotas: "perro gato"` (texto), sin `categorias`, sin `destacado`; tarjetas de categorías sin `id`; sección de productos sin `mostrarFiltros`, `buscador` ni `categoriasProducto`.
+4. Mientras tanto, la **web** lee `data/pagina.json` de GitHub (ya migrado) → por eso la web está bien y el panel no.
+
+**Por qué es peligroso**: el chequeo de conflicto previo a publicar (`publicar()` → `vigilarSha`) compara el SHA remoto con `shaPagina`, que se capturó **al descargar el archivo al abrir el panel**. Como el borrador se superpone después a esos mismos datos, **el SHA coincide y no se detecta nada**: publicar desde un borrador viejo **pisa el catálogo nuevo** (la web vuelve al modelo sin categorías) sin avisar.
+
+**Mitigación disponible hoy (sin tocar el código)**: el botón **«Descartar»** del panel llama a `volverACargar()`, que borra `BQ_DRAFT_PAGINA` y `BQ_DRAFT_SITIO` del `localStorage` y vuelve a cargar lo publicado. Al restaurar el borrador, `compararConPublicado()` marca el panel como «con cambios» y activa ese botón, así que está disponible. Al descartar, el panel carga el modelo publicado (con `categoriasProducto`) y **el bloque aparece**.
+
+**Regla para el cliente mientras tanto**: si el panel no muestra el bloque de categorías, **«Descartar» y recargar**; y no publicar desde un panel que muestre el modelo viejo.
+
+**Arreglo de fondo (pendiente, no aplicado)**: migrar el borrador al abrir el panel con la misma lógica idempotente que ya se usó sobre los datos publicados (`categorias.tarjetas[].id`, `categoriasProducto`, `producto.mascotas[]`, `producto.categorias[]`, `producto.destacado`, eliminar `etiqueta`), y aplicarla también a las restauraciones del «Historial de versiones» y de las «Copias de seguridad» (que cargan como borrador). Queda anotado como pendiente en `README.md` y en `guias/ESTADO-ACTUAL.md`.
+
+> **Nota**: este arreglo **no se aplicó** porque el CEO pidió revisar el estado actual del proyecto antes de la entrega y que no se tocara el código. Queda documentado con diagnóstico, impacto, mitigación y solución propuesta.
+
+### 4. Documentación actualizada (este commit)
+
+- **`guias/ESTADO-ACTUAL.md` (nuevo)**: informe de estado para la revisión del CEO — qué es el proyecto, cómo está hecho, cómo funciona, qué se verificó (con los números de las pruebas), **problemas conocidos** con su impacto y su mitigación, pendientes por área (código, marketing, legal, cuentas), cómo revisarlo en 10 minutos, decisiones de fondo y estado de git.
+- **`README.md`**: se corrigieron datos que habían quedado desactualizados (los filtros del catálogo, `productos[].mascotas` que ya no es texto sino lista de ids, la clave nueva `footer.empresaUrl`, el valor vigente de `ALLOWED_DOMAINS`, el hash de versión de assets, el archivo `tools/actualizar-version.js` que faltaba en el árbol) y se agregó la sección **«Problemas conocidos»** con el enlace al informe.
+- **`guias/ENTREGA-CLIENTE.md`**: aviso en la sección 5.b sobre el borrador viejo y el paso «Descartar», más dos ítems en el checklist de la reunión.
+- **`BITACORA.md`**: esta entrada.
+- Recordatorio de que **`guias/` está excluido de la publicación** (`_config.yml`) → el informe nuevo **no se publica** en la web (responde 404), como el resto de la documentación interna.
+

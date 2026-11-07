@@ -37,13 +37,13 @@ Una sola página con navegación por anclas. Los bloques y su orden se definen e
 |---|---|---|
 | Portada (`hero`) | `#inicio` | Carrusel de fotos, título, y botones de WhatsApp y "Ver productos" |
 | Categorías (`categorias`) | `#categorias` | Tarjetas **Perros** y **Gatos** (con imagen) que enlazan a Productos |
-| Productos (`productos`) | `#productos` | Catálogo con filtros **Todos / Perros / Gatos**, carrusel por producto y **paginación automática** (bloques de 6, páginas y flechas que se generan solas) |
+| Productos (`productos`) | `#productos` | Catálogo con **dos grupos de filtros** (mascota y categoría de producto), buscador, contador de resultados, **precio formateado**, productos **destacados** y **paginación automática** (bloques de 6, páginas y flechas que se generan solas) |
 | Nosotros (`imagenTexto`) | `#nosotros` | Foto a un lado y texto + viñetas + botón al otro |
 | Contacto (`contacto`) | `#contacto` | WhatsApp, redes, ubicación/mapa, horarios, teléfono y correo |
 | Header | `.site-header` | Logo, menú, botón de WhatsApp |
 | Footer | `.site-footer` | Marca, secciones, datos de contacto, redes y año dinámico |
 
-**Funcionalidades:** menú móvil con overlay y scroll-spy, carruseles con teclado/touch/autoplay (pausa al enfocar o pasar el mouse), animaciones de aparición al hacer scroll, barra de progreso de scroll, título de portada con efecto de escritura **y revelado del resto del contenido en paralelo** (todo visible en ~0,5 s, título completo en ~1,6 s), enlaces de WhatsApp/Google Maps generados desde los datos, filtros de productos por mascota con repaginación, secciones ocultables desde el panel (`oculto`), SEO dinámico desde `sitio.json` (título, descripción, Open Graph y JSON-LD `PetStore`), y **acceso discreto al panel: tres clics seguidos en el logo** (el login con GitHub sigue siendo obligatorio; desactivado dentro de la vista previa del editor).
+**Funcionalidades:** menú móvil con overlay y scroll-spy, carruseles con teclado/touch/autoplay (pausa al enfocar o pasar el mouse), animaciones de aparición al hacer scroll, barra de progreso de scroll, título de portada con efecto de escritura **y revelado del resto del contenido en paralelo** (todo visible en ~0,5 s, título completo en ~1,6 s), enlaces de WhatsApp/Google Maps generados desde los datos, **catálogo con filtros por mascota y por categoría de producto, buscador, contador, estado vacío, precio formateado y productos destacados** con repaginación, secciones ocultables desde el panel (`oculto`), SEO dinámico desde `sitio.json` (título, descripción, Open Graph y JSON-LD `PetStore`), y **acceso discreto al panel: tres clics seguidos en el logo** (el login con GitHub sigue siendo obligatorio; desactivado dentro de la vista previa del editor).
 
 ---
 
@@ -68,7 +68,8 @@ la-boutique-cat-y-dog/
 │   ├── INFORME-SEGURIDAD.md    # Auditoría de seguridad (presentable al cliente)
 │   ├── ENTREGA-CLIENTE.md      # Guía de entrega + traspaso de cuentas + dominio propio + sección legal
 │   ├── CONTRATO-LICENCIA-USO.md # Modelo en blanco del contrato de licencia de uso (NO se publica)
-│   └── AUTORIZACION-DOMINIO.md  # Carta de autorización para registrar/administrar el dominio (NO se publica)
+│   ├── AUTORIZACION-DOMINIO.md  # Carta de autorización para registrar/administrar el dominio (NO se publica)
+│   └── ESTADO-ACTUAL.md         # Informe de estado para revisión: cómo está hecho, qué funciona, qué falta (NO se publica)
 ├── css/
 │   └── styles.css              # Todos los estilos (variables, layout, componentes)
 ├── js/
@@ -90,6 +91,7 @@ la-boutique-cat-y-dog/
 │   └── img/                    # Imágenes del sitio (subidas van acá) + og-image.jpg
 └── tools/
     ├── serve.js                # Servidor estático local sin dependencias (Node)
+    ├── actualizar-version.js   # Regenera el ?v= de CSS/JS (cache de Cloudflare) — correr tras tocar CSS/JS
     └── worker-editor.js        # Worker de Cloudflare extendido para el login del editor
 ```
 
@@ -153,7 +155,7 @@ Todo el contenido está en dos archivos. Se editan con cualquier editor de texto
 | `redes` | `instagram`, `tiktok`, `facebook`, cada una con `url` y `etiqueta` |
 | `nav` | Lista del menú: `texto` + `ancla` (ej.: `#productos`) |
 | `navCtaTexto` | Texto del botón de WhatsApp del menú |
-| `footer` | Descripción, títulos de columnas, `ordenSocial`, `whatsappTexto` y `copyright` |
+| `footer` | Descripción, títulos de columnas, `ordenSocial`, `whatsappTexto`, `copyright` y **`empresaUrl`** (enlace de la empresa en el pie; si está vacío, el copyright queda como texto plano) |
 
 #### `data/pagina.json` — secciones de la portada
 
@@ -163,15 +165,19 @@ Es una lista `secciones`. **El orden de la lista es el orden en la web.** Cada s
 |---|---|---|
 | `hero` | Portada con carrusel | `id`, `aria`, `eyebrow`, `titulo`, `texto`, `botonPrincipal`, `botonSecundario`, `carruselAria`, `slides[]` |
 | `categorias` | Dos tarjetas (Perros/Gatos) | `id`, `eyebrow`, `titulo`, `intro`, `ctaTexto`, `tarjetas[]` |
-| `productos` | Galería con filtros | `id`, `eyebrow`, `titulo`, `intro`, `mostrarFiltros`, `ctaTexto`, `productos[]` |
+| `productos` | Galería con filtros | `id`, `eyebrow`, `titulo`, `intro`, `mostrarFiltros`, `buscador`, `categoriasProducto[]` (id + título), `ctaTexto`, `productos[]` |
 | `imagenTexto` | Foto + texto | `id`, `eyebrow`, `titulo`, `texto`, `vinetas[]`, `imagen`, `imagenAlt`, `boton` |
 | `contacto` | Datos de contacto | `id`, `eyebrow`, `titulo`, `intro`, `botonWhatsapp`, `botonMapsTexto`, `ordenSocial` |
 
 **Detalle de campos con reglas especiales:**
 
 - **`titulo` del `hero`** admite marcado mínimo: `**palabra**` la pone en color de acento y `*palabra*` en cursiva. En el resto de los campos el texto es plano.
-- **`productos[].mascotas`**: es un **texto** con valores separados por espacios (`perro`, `gato`, o `perro gato`). Define en qué filtros aparece la tarjeta. No es una lista.
-- **`productos[].precio`** (opcional): **texto libre**. Si queda vacío, el precio **no se muestra**.
+- **`categorias.tarjetas[].id`**: identificador estable de cada tarjeta (mascota). Lo usan los filtros y las casillas «Para qué mascotas». El texto visible es el `titulo`.
+- **`productos[].mascotas`**: es una **lista de ids** (`["perros","gatos"]`), no un texto. Define en qué filtro de mascota aparece la tarjeta; vacía = aplica a todas.
+- **`productos[].categorias`**: lista de ids de `categoriasProducto` (p. ej. `["alimentos"]`). Un producto puede llevar varias; vacía = sin filtro de categoría.
+- **`productos[].destacado`**: `true` = sale primero en la grilla, con aro de color y etiqueta «Destacado».
+- **`productos[].precio`** (opcional): **texto libre**. Si queda vacío, el precio **no se muestra**. Si es un número, se formatea con miles (`12000` → `$12.000`); si es texto («Consultar») se muestra tal cual.
+- **`categoriasProducto[]`** (en la sección de productos): la lista administrable de categorías del catálogo. Sus `id` alimentan los filtros de la web y las casillas «Categorías de producto» de cada producto.
 - **`slides[].ancho` / `alto`**, **`tarjetas[].ancho` / `alto`**, **`imagenAncho` / `imagenAlto`**: opcionales. Ayudan a reservar el espacio de la imagen y evitar saltos de layout. El CSS fija la geometría con `aspect-ratio` + `object-fit`, así que **ocultarlos o dejarlos vacíos no deforma las imágenes**.
 - **`slides[].srcset` / `sizes`**: opcionales, para servir la variante `-900` en pantallas chicas. En el panel figuran como campos ocultos.
 - **`slides[].prioridad`**: reservado para marcar la primera foto como carga prioritaria.
@@ -259,7 +265,7 @@ También hay un **respaldo con token personal** (avanzado) para el caso en que e
 |---|---|---|
 | `GITHUB_CLIENT_ID` | Client ID de la OAuth App | No |
 | `GITHUB_CLIENT_SECRET` | Client Secret de la OAuth App | **Sí** |
-| `ALLOWED_DOMAINS` | `laboutiquecatydog.github.io, localhost` — **`localhost` a secas** (el patrón se aplica al *hostname*, sin puerto; el comodín `localhost*` NO matchea) | No |
+| `ALLOWED_DOMAINS` | `laboutiquecatydog.com.ar, www.laboutiquecatydog.com.ar, laboutiquecatydog.github.io, localhost` — **`localhost` a secas** (el patrón se aplica al *hostname*, sin puerto; el comodín `localhost*` NO matchea) | No |
 
 > Los nombres deben escribirse **exactos, en inglés y en mayúsculas**. Cloudflare suele traducir los nombres a español (p. ej. `ID_CLIENTE_GITHUB`) y entonces el Worker no los encuentra.
 > El código a pegar en Cloudflare es `tools/worker-editor.js` (versión del worker oficial `sveltia-cms-auth` + modo editor; el flujo de Sveltia queda intacto).
@@ -289,8 +295,8 @@ Cloudflare y los navegadores **cachean los `.js` y `.css` hasta 4 horas** (`cach
 Por eso los CSS/JS se referencian con un `?v=`:
 
 ```html
-<link rel="stylesheet" href="css/styles.css?v=eff646fe" />
-<script src="js/render.js?v=eff646fe"></script>
+<link rel="stylesheet" href="css/styles.css?v=c1c7c0ed" />
+<script src="js/render.js?v=c1c7c0ed"></script>
 ```
 
 **Regla:** después de cambiar `css/styles.css`, `js/render.js`, `js/main.js` o cualquier archivo de `admin/`, corré:
@@ -349,6 +355,21 @@ Auditoría completa (24/10/2026 y 3/11/2026) con pruebas automáticas de vulnera
 
 ---
 
+## Problemas conocidos
+
+Estado honesto de lo que está funcionando y lo que no. El detalle completo, con el plan de arreglo, está en **`guias/ESTADO-ACTUAL.md`** (informe para revisión del CEO).
+
+| Problema | Qué pasa | Impacto | Estado / qué hacer |
+|---|---|---|---|
+| **Borrador viejo en el navegador** | El panel recupera el borrador local (`localStorage`) **tal cual**, sin adaptarlo al formato actual. Si el navegador tenía un borrador anterior al cambio de categorías, el panel **no muestra el bloque «Categorías de producto»** | **Alto**: si en ese estado se pulsa «Publicar cambios», se pisa el catálogo nuevo (la web vuelve al modelo viejo). El chequeo de conflicto no avisa | **Abierto.** Mitigación: botón **«Descartar»** (borra el borrador y recarga lo publicado) → el bloque aparece. Arreglo de fondo pendiente: migrar el borrador al abrir el panel. **Mientras tanto, no publicar desde un panel con datos viejos** |
+| **Caché de Cloudflare** | Los `.js`/`.css` se cachean 4 h: con código viejo y datos nuevos la web «no cambia» | Medio | **Mitigado** con `?v=<hash>` (ver la sección «Versionado de assets») |
+| **Caché del navegador** | El HTML se cachea 10 min | Bajo | Normal: un **Ctrl+F5** alcanza |
+| **Sin analítica de visitas** | Cloudflare Web Analytics está apagado a propósito (su beacon no carga por la CSP y el aviso de privacidad declara que no hay cookies ni analítica) | Bajo | Decisión coherente con el aviso. Si se quiere medir tráfico, hay que elegir entre un medidor sin cookies o actualizar aviso + CSP |
+| **Resolución de `assets/img/local.jpg`** (449×660) | Puede verse baja como fondo | Bajo | Pendiente del próximo pase de fotos |
+| **Encuadre de las fotos de producto** | No se hizo un repaso fino de los recortes | Bajo | Pendiente de calidad visual |
+
+---
+
 ## Detalles técnicos
 
 - **Sin frameworks ni dependencias** (solo Google Fonts por CDN): sin `node_modules`, sin build, sin sorpresas al desplegar.
@@ -362,6 +383,8 @@ Auditoría completa (24/10/2026 y 3/11/2026) con pruebas automáticas de vulnera
 ## Estado del proyecto
 
 Sitio publicado en GitHub Pages con el contenido en JSON. **Todo el rediseño de la landing y el panel visual (W1–W5) están en producción**, y el 3/11/2026 se publicó una auditoría de seguridad/UX con sus correcciones (commit `1006ac6`).
+
+> **Informe de estado para revisión:** `guias/ESTADO-ACTUAL.md` — qué es el proyecto, cómo está hecho, cómo funciona, **qué se verificó** (con los números de las pruebas), **problemas conocidos** y pendientes por área. Es el documento para leer antes de la entrega.
 
 | Etapa | Cambio | Estado |
 |---|---|---|
@@ -382,12 +405,16 @@ Sitio publicado en GitHub Pages con el contenido en JSON. **Todo el rediseño de
 | **W5d — cierre** | Push general a producción, smoke test, guías de Search Console + Google Business Profile, guía del cliente | Publicado |
 | **Auditoría 2026-11-03** | Seguridad (documentación interna ocultada), estabilidad (5 bugs del panel), UX (autoplay del hero, `noscript`, foco de modales, errores en español), imágenes optimizadas (−760 KB), `404.html` / `privacidad.html` / `manifest.json` | Publicado (`1006ac6`) |
 | **Huella legal 2026-11-05** | `terminos.html` publicada, `LICENSE` (titularidad de Estalingrado Corp, no se publica), pie con links legales y "Desarrollo y operación: Estalingrado Corp", modelo de contrato de licencia de uso y autorización de dominio (internos) | Publicado |
-| **Panel y catálogo 2026-11-06** | Rediseño del panel en modo «Textos» (productos como íconos + ventana de edición), corrección del aviso de privacidad y **catálogo con categorías**: categorías de producto administrables, filtros por mascota y por categoría, buscador, contador, estado vacío, precio formateado y productos destacados | Publicado |
+| **Panel y catálogo 2026-11-06** | Rediseño del panel en modo «Textos» (productos como íconos + ventana de edición), corrección del aviso de privacidad y **catálogo con categorías**: categorías de producto administrables, filtros por mascota y por categoría, buscador, contador, estado vacío, precio formateado y productos destacados | Publicado (`02b75ce`) |
+| **Cache de Cloudflare 2026-11-06** | Versionado de assets (`?v=<hash>`) + `tools/actualizar-version.js`: evita que la web sirva JS/CSS viejos con datos nuevos | Publicado (`2391b8f`) |
+| **Huella legal como enlace 2026-11-07** | El copyright del pie es un enlace a `https://estalingradocorp.com.ar/` (pestaña nueva, `rel="noopener"`), con campo editable «Enlace de la empresa (pie)» en el panel | Publicado (`60b6302`) |
+| **Documentación 2026-11-07** | `guias/ESTADO-ACTUAL.md` (informe de estado para revisión del CEO: cómo está hecho, cómo funciona, verificaciones, problemas y pendientes) + actualización de README, bitácora y guía de entrega | En este commit |
 
 ---
 
 ## Pendientes / TODO
 
+- [ ] **Migrar los borradores antiguos al abrir el panel** (problema 1 de «Problemas conocidos»): aplicar la misma migración idempotente que se usó sobre los datos publicados (`categorias.tarjetas[].id`, `categoriasProducto`, `producto.mascotas[]`, `producto.categorias[]`, `producto.destacado`, quitar `etiqueta`) al borrador local y a las restauraciones del «Historial de versiones» y de las «Copias de seguridad». Mientras tanto, la mitigación es el botón **«Descartar»** del panel.
 - [ ] **Search Console (con el dominio nuevo):** crear la propiedad de tipo **Dominio** para `laboutiquecatydog.com.ar` (verificación con un registro **TXT** que da Google → se agrega en Cloudflare DNS), enviar `https://laboutiquecatydog.com.ar/sitemap.xml` y pedir la indexación de la portada. La propiedad anterior (`https://laboutiquecatydog.github.io/`) ya no sirve: esa URL redirige al dominio propio. Procedimiento en `guias/ENTREGA-CLIENTE.md` (sección 10).
 - [ ] **Google Business Profile:** alta y reclamo de la ficha del local (nombre, dirección, teléfono, horarios, fotos, categoría "Tienda de mascotas") → es el factor #1 para búsquedas locales del tipo "pet shop cerca mío". La verificación puede tardar días o semanas.
 - [ ] **Guía del cliente:** video o PDF corto con la rutina del panel (entrar → editar → publicar).

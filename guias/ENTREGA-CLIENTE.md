@@ -146,6 +146,22 @@ El catálogo de la web tiene **dos grupos de filtros** (por mascota y por catego
 
 **Tip para la reunión:** carguen un producto real con el cliente (una marca de alimento que venda) y muéstrenle cómo aparece cuando toca el filtro. Es la forma más rápida de que se entienda.
 
+### ⚠️ Si el panel no muestra el bloque «Categorías de producto»
+
+**Síntoma:** en la sección **Productos** del panel no aparece el bloque «Categorías de producto» (las cinco categorías) ni las casillas de categorías en la ventanita de un producto, **aunque la web sí tiene los filtros**.
+
+**Por qué:** el panel guarda un **borrador automático en el navegador**. Si ese navegador ya se usó antes del cambio de categorías, quedó guardado un borrador con el **formato anterior**, y el panel lo recupera tal cual (sin adaptarlo). El panel no está roto: está mostrando un borrador viejo.
+
+**Qué hacer (sin tocar nada):**
+
+1. En el panel, botón **«Descartar»** (pide confirmación: *«¿Descartar todos los cambios sin publicar? Se vuelve a la última versión en GitHub»*). Eso borra el borrador viejo del navegador y recarga lo publicado.
+2. Volver a abrir la sección **Productos** → el bloque **«Categorías de producto»** aparece con sus cinco filas.
+3. A partir de ahí, trabajar sobre el modelo nuevo y **«Publicar cambios»** como siempre.
+
+> **Mientras tanto: no publicar desde un panel que muestre el modelo viejo** (productos sin «Categorías de producto» ni «Destacado»). Si se publica desde ahí, el catálogo nuevo se pisa y la web vuelve a mostrar los filtros viejos. Está anotado como pendiente de corrección en `README.md` (sección «Problemas conocidos») y en `guias/ESTADO-ACTUAL.md`.
+>
+> El aviso que ayuda a detectarlo: al entrar, el panel muestra el cartel **«Se restauró un borrador pendiente de publicar»** y el chip de cambios queda activo aunque el cliente no haya tocado nada.
+
 ## 6. Checklist de la reunión de entrega
 
 ### Antes de la reunión (técnico)
@@ -159,6 +175,7 @@ El catálogo de la web tiene **dos grupos de filtros** (por mascota y por catego
 - [ ] ~~Trasladar la OAuth App y el Worker a las cuentas del cliente~~ → **descartado**: la llave se queda en la cuenta del desarrollador (sección 0). Queda documentado por si el cliente lo pide.
 - [x] **Prueba de escritura** con el token del scope `public_repo`: el camino real de escritura contra la API de GitHub quedó verificado (rama de prueba + `PUT /contents` con el mismo formato que usa el panel → commit `b81b5b23`, rama borrada después, `main` intacto). El scope `public_repo` cubre lectura y escritura de código en repos públicos (documentación oficial de GitHub).
 - [ ] Dar de alta al cliente en el panel con su propia cuenta y **practicar un cambio real** (texto + foto) → ver checklist de la reunión.
+- [ ] **Verificar en el navegador del cliente que el panel muestra el bloque «Categorías de producto»** en la sección Productos. Si no aparece, pulsar **«Descartar»** (borra el borrador viejo) y recargar → ver la sección 5.b. Con el cliente delante, para que lo practice él mismo.
 
 > **El sitio publicado no necesita que se actualice nada a mano:** el panel publica con un commit a `data/pagina.json` o `data/sitio.json`, y GitHub Pages reconstruye solo en ~1 minuto. La documentación interna (bitácora, README, guías) **no se publica** y no influye en la web.
 
@@ -169,6 +186,7 @@ El catálogo de la web tiene **dos grupos de filtros** (por mascota y por catego
 - [ ] Guardar el marcador del panel en el celu del cliente.
 - [ ] Practicar con él/ella un cambio real (un texto + una foto) y publicarlo.
 - [ ] Practicar la carga de un producto **clasificado** (mascota + categoría + precio) y mostrar cómo la web lo filtra.
+- [ ] Mostrar el bloque **«Categorías de producto»** (crear una categoría nueva y asignársela a un producto) → dejar claro que esa es la lista que ve la gente en los filtros debajo del buscador.
 - [ ] Mostrar el botón **«?»** del panel y regalarle el `guias/` impreso o en PDF.
 - [ ] Dejar el pendrive de respaldo.
 - [ ] Aclarar el plan de soporte acordado (ej.: ajustes incluidos por 30 dias).
@@ -225,6 +243,7 @@ El repositorio puede seguir llamándose `laboutiquecatydog.github.io`: el domini
 | `LICENSE` | raíz del repo (**no se publica**) | evidencia pública de titularidad: copyright de Estalingrado Corp, autoría a nombre de la empresa (sin nominación personal), licencia de uso al negocio |
 | `guias/CONTRATO-LICENCIA-USO.md` | interno (**no se publica**) | modelo en blanco del contrato entre Estalingrado Corp y el cliente |
 | `guias/AUTORIZACION-DOMINIO.md` | interno (**no se publica**) | autorización para registrar/administrar el dominio + datos que hay que pedirle al cliente |
+| `guias/ESTADO-ACTUAL.md` | interno (**no se publica**) | informe de estado para revisión: cómo está hecho el proyecto, cómo funciona, qué se verificó, **problemas conocidos** y pendientes por área |
 
 ### Los dos motivos por los que existen los documentos internos
 
