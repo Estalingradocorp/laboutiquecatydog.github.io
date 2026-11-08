@@ -300,6 +300,44 @@
               "alto": 48
             }
           ]
+        },
+        {
+          "titulo": "Cama Acolchada gris",
+          "descripcion": "Cama para mascotas, comoda. 20x60Cm.",
+          "mascotas": [],
+          "categorias": [
+            "descanso"
+          ],
+          "destacado": false,
+          "precio": "30000",
+          "mensajeWhatsApp": "Hola buenas tardes. Sigue disponible ?",
+          "fotos": [
+            {
+              "foto": "assets/img/camas-2-a282b3-88cce4.jpg",
+              "alt": "",
+              "ancho": 687,
+              "alto": 515
+            }
+          ]
+        },
+        {
+          "titulo": "Producto nuevo",
+          "descripcion": "",
+          "mascotas": [],
+          "categorias": [
+            "categoria-8"
+          ],
+          "destacado": false,
+          "precio": "2000",
+          "mensajeWhatsApp": "Logo La Boutique\n\nPrueba en la carga de productos.",
+          "fotos": [
+            {
+              "foto": "assets/img/logo-c35a65.jpg",
+              "alt": "",
+              "ancho": 300,
+              "alto": 225
+            }
+          ]
         }
       ],
       "buscador": true,
