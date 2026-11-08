@@ -515,3 +515,45 @@ Tanda de cierre: el trabajo de la entrada anterior se **publicó y se verificó 
 - **`BITACORA.md`**: esta entrada.
 - Recordatorio de que **`guias/` está excluido de la publicación** (`_config.yml`) → el informe nuevo **no se publica** en la web (responde 404), como el resto de la documentación interna.
 
+---
+
+## 2026-11-07 — Migración a Estalingradocorp, Cloudflare y panel sin GitHub para el cliente
+
+Tanda larga: el sitio pasó de `laboutiquecatydog/laboutiquecatydog.github.io` a `Estalingradocorp/laboutiquecatydog.github.io` (dueño nuevo), dominio propio en Cloudflare cuenta `nicotips27`, certificado HTTPS pendiente y panel con usuario/contraseña literal (sin cuenta de GitHub para el cliente).
+
+### 1. Espejo y transferencia
+- Descarga completa de `laboutiquecatydog/laboutiquecatydog.github.io` → `laboutiquecatydog.github.io/` local + push inicial a `Estalingradocorp/web-La-Boutique-Cat-y-Dog` (commit `52ab758`) + invitación a `nicotips27` y `nicolabarranco27-a11y` con `push`.
+- Intento de **transferir** los repos originales (`laboutiquecatydog/laboutiquecatydog.github.io` y `laboutiquecatydog/sveltia-cms-auth`) a `Estalingradocorp` con PAT del dueño: GitHub devolvió `422 Repository has already been taken` en ambos (user→user con nombre `*.github.io` y validación de nombre). No es transferencia posible por API en este caso.
+- Solución: **espejo en cuenta nueva** (equivalente a efectos de administración):
+  - `Estalingradocorp/laboutiquecatydog.github.io` creado + push `52ab758` (luego `a1dc0f2`, `35a97a2`, `04147cf`).
+  - `Estalingradocorp/sveltia-cms-auth` creado + push `6e3a01d` (luego `ef45fc4`, `281da3f`, `30b3ecc`).
+  - Invitación a colaboradores ` nicotips27 / nicolabarranco27-a11y` con `push` en ambos repos nuevos. `admin` no es asignable vía API porque `Estalingradocorp` es **User**, no Org (`Cannot assign permission of admin`).
+
+### 2. Dominio y DNS (Cloudflare `nicotips27`)
+- Zona `laboutiquecatydog.com.ar` (ID oculto) en plan Free, NS `lady.ns.cloudflare.com` / `mour5` (verificado en `1.1.1.1`). Cuenta vieja (`la boutique`) eliminada; solo se toca esta zona.
+- Registros finales (5→8 tras el fix): `www CNAME → estalingradocorp.github.io` (Solo DNS) + TXT SPF/DMARC/DKIM. El apex se corrigió así:
+  - Al principio: apex `CNAME → estalingradocorp.github.io` (flattening). Resolvía a las 4 IPs de GitHub en público, pero GitHub Pages marcaba `DNS check unsuccessful / NotServedByPagesError`.
+  - Fix aplicado por API del dashboard (sesión logueada en el navegador): convertir apex `CNAME` a **A `185.199.108.153`** y crear 3 A más `185.199.109/110/111.153` (Solo DNS, TTL Automático). Verificado en `1.1.1.1` (TTL 300).
+- Regla respetada: **Solo DNS (nube gris)** en todos. El aviso de Cloudflare «Es necesario redirigir mediante proxy…» se ignora para GitHub Pages (con proxy no se puede emitir el certificado).
+
+### 3. GitHub Pages / HTTPS
+- Repo nuevo: `status: built`, `cname: laboutiquecatydog.com.ar`, `source: main /`. Archivo `CNAME` correcto.
+- `http://laboutiquecatydog.com.ar/` → **200 OK** (`Server: GitHub.com`, título «La Boutique Cat & Dog | Tienda de mascotas en Salta»). `http://www...` → **301** al apex.
+- `https://` todavía falla con `SEC_E_WRONG_PRINCIPAL` y `https_enforced: false` con `https_certificate.state: new` («This domain was recently added…»). No es error de DNS ya, es emisión Let's Encrypt pendiente. Al pasar a `approved`, activar **Enforce HTTPS** en `Settings → Pages`.
+- `NotServedByPagesError` sigue en rojo hasta el **Check again** de GitHub después del cambio a A (propagación + cache de GitHub). Estado esperado: tarda minutos/horas.
+
+### 4. Panel sin cuenta de GitHub para el cliente (usuario + contraseña)
+- Objetivo: el cliente entra solo con **usuario + contraseña** (no se le da cuenta de GitHub). El token de GitHub queda oculto en el servidor.
+- Diseño: el Worker `sveltia-cms-auth` lee secretos **solo desde env** (`ADMIN_USER`, `ADMIN_PASS`, `GITHUB_TOKEN`, `ALLOWED_DOMAINS`). **Ningún secreto está en el repo, en el código ni es público** (verificado con `grep`).
+- Worker (`src/index.js`):
+  - Nuevo modo `provider=password` / `client=editor`: `GET /auth` muestra formulario, `POST /auth` valida con comparador timing-safe y devuelve el token o redirige.
+  - Sveltia: devuelve `outputHTML` (postMessage). Editor: `302` a `/admin/editor.html#access_token=…` (si `pathname=/`, se normaliza a `/admin/editor.html`).
+  - Fix aplicado: se había roto el wrapper `async fetch` al agregar el modo (error `Expected ")" but found "==="` en deploys de Cloudflare) → commit `281da3f` lo restaura; `node --check` pasa.
+- Editor (`admin/editor.js` + `editor.html`):
+  - `WORKER_BASE` actualizado a `https://sveltia-cms-auth.nicotips27.workers.dev` (la vieja `laboutiquecatydog10.workers.dev` daba `404 / 1042`).
+  - `REPO` actualizado a `Estalingradocorp/laboutiquecatydog.github.io`.
+  - `iniciarLogin()` ahora usa `provider=password` y envía `location.href` completa (antes solo `origin`, que mandaba el token a `/` y dejaba en blanco).
+  - Textos del login: «Entrar con usuario y contraseña». Se mantiene respaldo por token manual para el desarrollador.
+- Credenciales seteadas **solo en Cloudflare como secretos cifrados** (`nicotips27 → Workers & Pages → sveltia-cms-auth → Settings → Variables`): `ADMIN_USER`, `ADMIN_PASS`, `GITHUB_TOKEN`, `ALLOWED_DOMAINS`. Verificado por POST de prueba → pasó de error `Panel no configurado / MISCONFIGURED_CLIENT` a `302` al editor.
+- Borrado de seguridad: los PAT temporales compartidos en el chat deben **revocarse** en `github.com/settings/tokens` cuando se termine la tarea.
+
