@@ -391,11 +391,15 @@
 
     /* Texto que usa el buscador: TODO lo del producto (título,
        descripción, precio, mensajes, textos alternativos de fotos y
-       nombres de categorías y mascotas), para que se encuentre por
-       cualquier palabra, no solo por el título. */
+       nombres de SUS categorías y SUS mascotas — no todas las
+       categorías, o cualquier palabra coincidiría con todo). */
+    var nombresPorId = contexto.nombresCategoriasPorId || {};
+    var mascotasPorId = contexto.nombresMascotasPorId || {};
+    var catsPropias = (p.categorias || []).map(function (id) { return nombresPorId[id]; });
+    var petsPropios = (p.mascotas || []).map(function (id) { return mascotasPorId[id]; });
     var paraBuscar = [p.titulo, p.descripcion, p.precio, p.mensajeWhatsApp]
-      .concat(contexto.nombresCategorias || [])
-      .concat(contexto.nombresMascotas || [])
+      .concat(catsPropias)
+      .concat(petsPropios)
       .concat((p.fotos || []).map(function (f) { return f.alt; }))
       .filter(function (v) { return !!v; }).join(" ").toLowerCase();
 
@@ -458,6 +462,10 @@
     var catsProducto = categoriasProducto(b);
     var nombresCategorias = catsProducto.map(function (c) { return c.titulo; });
     var nombresMascotas = catsMascota.map(function (c) { return c.titulo; });
+    var nombresPorId = {};
+    catsProducto.forEach(function (c) { nombresPorId[c.id] = c.titulo; });
+    var mascotasPorId = {};
+    catsMascota.forEach(function (c) { mascotasPorId[c.id] = c.titulo; });
 
     /* Los destacados van primero: son los que el local quiere mostrar.
        Se guarda el índice original del producto (data-producto) para que
@@ -468,7 +476,7 @@
     });
 
     var cards = ordenados.map(function (item) {
-      return buildProductoCard(item.p, sitio, b.ctaTexto, item.i, { nombresCategorias: nombresCategorias, nombresMascotas: nombresMascotas });
+      return buildProductoCard(item.p, sitio, b.ctaTexto, item.i, { nombresCategorias: nombresCategorias, nombresMascotas: nombresMascotas, nombresCategoriasPorId: nombresPorId, nombresMascotasPorId: mascotasPorId });
     }).join("");
 
     /* --- Filtros: mascota + categoría de producto --- */
