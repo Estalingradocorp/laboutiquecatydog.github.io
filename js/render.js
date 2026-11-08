@@ -389,9 +389,14 @@
     var mascotas = idsDeMascotas(p.mascotas);
     var categorias = idsDeCategorias(p.categorias);
 
-    /* Texto que usa el buscador del catálogo */
-    var paraBuscar = [p.titulo, p.descripcion, p.precio]
+    /* Texto que usa el buscador: TODO lo del producto (título,
+       descripción, precio, mensajes, textos alternativos de fotos y
+       nombres de categorías y mascotas), para que se encuentre por
+       cualquier palabra, no solo por el título. */
+    var paraBuscar = [p.titulo, p.descripcion, p.precio, p.mensajeWhatsApp]
       .concat(contexto.nombresCategorias || [])
+      .concat(contexto.nombresMascotas || [])
+      .concat((p.fotos || []).map(function (f) { return f.alt; }))
       .filter(function (v) { return !!v; }).join(" ").toLowerCase();
 
     var destacado = !!p.destacado;
@@ -452,6 +457,7 @@
     var catsMascota = categoriasMascota(pagina);
     var catsProducto = categoriasProducto(b);
     var nombresCategorias = catsProducto.map(function (c) { return c.titulo; });
+    var nombresMascotas = catsMascota.map(function (c) { return c.titulo; });
 
     /* Los destacados van primero: son los que el local quiere mostrar.
        Se guarda el índice original del producto (data-producto) para que
@@ -462,7 +468,7 @@
     });
 
     var cards = ordenados.map(function (item) {
-      return buildProductoCard(item.p, sitio, b.ctaTexto, item.i, { nombresCategorias: nombresCategorias });
+      return buildProductoCard(item.p, sitio, b.ctaTexto, item.i, { nombresCategorias: nombresCategorias, nombresMascotas: nombresMascotas });
     }).join("");
 
     /* --- Filtros: mascota + categoría de producto --- */

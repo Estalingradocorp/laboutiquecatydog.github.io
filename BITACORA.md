@@ -680,6 +680,8 @@ Todo en local; la publicación con git se hace al final de la tanda. Contenido d
 ### Ajustes menores de esa jornada
 - **Agregar producto con buscador activo**: el producto nuevo («Producto nuevo») no coincidía con el filtro y quedaba oculto —parecía borrado—. Al agregar, el panel limpia el filtro solo.
 - **«Recortar y subir» sube en un paso**: antes quedaba esperando un segundo clic en «Subir y usar» (sensación de atasco); ahora recortar sube directo (si falla, reintenta desde el botón).
+- **Buscador del catálogo independiente y amplio**: con texto en el buscador, la categoría activa ya no restringe (se busca por contenido); el texto buscable incluye título, descripción, precio, mensaje de WhatsApp, textos alt de fotos y nombres de categorías/mascotas. Espera 150 → 80 ms (casi en tiempo real).
+- **Subida en paralelo**: los blobs de una imagen van en paralelo en vez de en serie (en publicado se sentía lento).
 
 ---
 

@@ -416,7 +416,10 @@
       var m = seleccion.mascota;
       var c = seleccion.categoria;
       if (m && m !== "all" && pets.indexOf(m) === -1) { return false; }
-      if (c && c !== "all" && cats.indexOf(c) === -1) { return false; }
+      /* Con texto en el buscador, la categoría NO restringe: se busca
+         por el contenido del producto (título, descripción, precio,
+         etiquetas, textos de fotos…), no por el filtro activo. */
+      if (c && c !== "all" && !texto && cats.indexOf(c) === -1) { return false; }
       if (texto) {
         var t = (card.getAttribute("data-buscar") || "").toLowerCase();
         if (t.indexOf(texto) === -1) { return false; }
@@ -488,11 +491,12 @@
       if (input) {
         input.addEventListener("input", function () {
           window.clearTimeout(timer);
+          /* Espera mínima: filtra casi en tiempo real al tipear */
           timer = window.setTimeout(function () {
             texto = input.value.trim().toLowerCase();
             if (limpiar) { limpiar.hidden = !input.value; }
             aplicar();
-          }, 150);
+          }, 80);
         });
         /* Enter no envía el formulario: filtra y nada más. */
         buscador.addEventListener("submit", function (event) { event.preventDefault(); });

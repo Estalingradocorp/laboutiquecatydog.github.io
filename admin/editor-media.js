@@ -593,18 +593,17 @@
      producción: un commit por imagen en GitHub). */
   function subirDatos(datos) {
     if (esLocal()) {
-      return datos.archivos.reduce(function (cadena, arch) {
-        return cadena.then(function () {
-          return fetch("/__local/subir-imagen", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ruta: arch.ruta, b64: arch.b64 })
-          }).then(function (res) {
-            if (!res.ok) { throw new Error("No se pudo guardar la imagen en local (código " + res.status + ")."); }
-            return res.json();
-          });
+      /* En paralelo: con varias imágenes, en serie se sentía lento */
+      return Promise.all(datos.archivos.map(function (arch) {
+        return fetch("/__local/subir-imagen", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ruta: arch.ruta, b64: arch.b64 })
+        }).then(function (res) {
+          if (!res.ok) { throw new Error("No se pudo guardar la imagen en local (código " + res.status + ")."); }
+          return res.json();
         });
-      }, Promise.resolve());
+      }));
     }
     return subirAGithub(datos);
   }
@@ -666,25 +665,24 @@
   /* Subida publicada: un solo commit por imagen con la API de Git Data
      (blobs + árbol + commit + actualizar la referencia). */
   function subirAGithub(datos) {
-    var shas = [];
-    var paso = Promise.resolve();
-
-    datos.archivos.forEach(function (arch) {
-      paso = paso.then(function () {
-        return apiFetch("/repos/" + REPO + "/git/blobs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: arch.b64, encoding: "base64" })
-        }).then(function (res) {
-          if (!res.ok) { alFallar(res); }
-          return res.json();
-        }).then(function (blob) { shas.push({ path: arch.ruta, sha: blob.sha }); });
-      });
-    });
+    /* Los blobs van en paralelo (antes en serie: se sentía lento).
+       Árbol, commit y referencia siguen en cadena (dependen entre sí). */
+    var paso = Promise.all(datos.archivos.map(function (arch) {
+      return apiFetch("/repos/" + REPO + "/git/blobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: arch.b64, encoding: "base64" })
+      }).then(function (res) {
+        if (!res.ok) { alFallar(res); }
+        return res.json();
+      }).then(function (blob) { return { path: arch.ruta, sha: blob.sha }; });
+    })).then(function (shas) { return shas; });
 
     var base = null;
+    var shas = [];
     return paso
-      .then(function () {
+      .then(function (lista) {
+        shas = lista;
         return apiFetch("/repos/" + REPO + "/git/ref/heads/" + BRANCH);
       })
       .then(function (res) { if (!res.ok) { alFallar(res); } return res.json(); })
