@@ -667,6 +667,18 @@ Todo en local; la publicación con git se hace al final de la tanda. Contenido d
 
 ---
 
+## 2026-11-08 — Un borrador del panel pisó producción: restaurado y protegido
+
+**Qué pasó:** el commit `f2f7cff` («Editor visual: actualizar secciones de la portada», publicado desde el panel) revirtió las tarjetas Perros/Gatos a las imágenes viejas **y** borró los productos del negocio (Paisaje Salta, estatua, Alimento Pedigree…) y sus categorías, reemplazándolos por productos plantilla. No fue un bug del código: fue el **borrador viejo del navegador** (de antes de los cambios) restaurado sobre los datos nuevos y publicado tal cual — exactamente el riesgo documentado el 2026-11-07.
+
+**Restauración:** se recuperó `data/pagina.json` de la última versión buena y se fusionó con el remoto conservando los datos correctos (merge con el árbol corregido). Producción verificada: tarjetas nuevas + 9 productos + categorías del negocio. Las fotos y categorías del usuario están intactas en el repo y en su borrador local.
+
+**Protección agregada (para que no se repita):** el panel publicado **ya no aplica borradores en silencio**. Si el borrador difiere de lo publicado, entra con lo publicado y **pregunta**: «Aceptar: cargar tu borrador · Cancelar: descartar el borrador y usar lo publicado». Un borrador idéntico se limpia sin ruido. El modo local no cambia (ahí los datos son los archivos).
+
+**Lección operativa:** los borradores de navegador **no se suben solos ni se pierden solos** — pero si se publican con datos viejos, pisan lo nuevo sin aviso (el chequeo SHA no lo detecta, como se documentó). La pregunta previa lo elimina.
+
+---
+
 ## 2026-11-07 — Migración a Estalingradocorp, Cloudflare y panel sin GitHub para el cliente
 
 Tanda larga: el sitio pasó de `laboutiquecatydog/laboutiquecatydog.github.io` a `Estalingradocorp/laboutiquecatydog.github.io` (dueño nuevo), dominio propio en Cloudflare cuenta `nicotips27`, certificado HTTPS pendiente y panel con usuario/contraseña literal (sin cuenta de GitHub para el cliente).
