@@ -864,6 +864,10 @@
           tipo: "foto",
           conSrcset: clave === "slides",
           alElegir: function (media) {
+            /* Sin filtro activo: el item nuevo ("Producto nuevo") no
+               coincidiría con la búsqueda y quedaría invisible,
+               como si se hubiera borrado. */
+            TEXTO_BUSQUEDA = "";
             valor.push(nuevoItem(clave, media, valor));
             alCambiar(true);
             /* El item nuevo se abre directo para completar los datos */

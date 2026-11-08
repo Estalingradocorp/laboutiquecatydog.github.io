@@ -677,6 +677,10 @@ Todo en local; la publicación con git se hace al final de la tanda. Contenido d
 
 **Lección operativa:** los borradores de navegador **no se suben solos ni se pierden solos** — pero si se publican con datos viejos, pisan lo nuevo sin aviso (el chequeo SHA no lo detecta, como se documentó). La pregunta previa lo elimina.
 
+### Ajustes menores de esa jornada
+- **Agregar producto con buscador activo**: el producto nuevo («Producto nuevo») no coincidía con el filtro y quedaba oculto —parecía borrado—. Al agregar, el panel limpia el filtro solo.
+- **«Recortar y subir» sube en un paso**: antes quedaba esperando un segundo clic en «Subir y usar» (sensación de atasco); ahora recortar sube directo (si falla, reintenta desde el botón).
+
 ---
 
 ## 2026-11-07 — Migración a Estalingradocorp, Cloudflare y panel sin GitHub para el cliente

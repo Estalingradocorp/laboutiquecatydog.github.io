@@ -578,6 +578,10 @@
       document.getElementById("media-prevista-info").textContent =
         "Se subirá como " + pendiente.nombre + " (" + pendiente.ancho + "×" + pendiente.alto +
         (archivos.length > 1 ? " + variante -900" : "") + ")";
+        /* «Recortar y subir» sube en el mismo paso (antes quedaba
+           esperando un segundo clic en «Subir y usar», y parecía
+           atascado). Si la subida falla, el botón reintenta. */
+        subirPendiente();
       }); /* fin de abrirRecorte */
     }).catch(function (err) {
       document.getElementById("media-prevista").hidden = true;
