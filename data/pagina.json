@@ -55,20 +55,20 @@
       "ctaTexto": "Ver productos",
       "tarjetas": [
         {
-          "imagen": "assets/img/5154762845097495701-56049f.jpg",
+          "imagen": "assets/img/seccion-perros.jpg",
           "alt": "Perros",
           "ancho": 1280,
-          "alto": 959,
+          "alto": 720,
           "titulo": "Perros",
           "texto": "Alimento, accesorios, higiene y todo para el cuidado diario de tu perro.",
           "enlace": "#productos",
           "id": "perros"
         },
         {
-          "imagen": "assets/img/5152511045283810903-d80f7e-7a2915.jpg",
+          "imagen": "assets/img/seccion-gatos.jpg",
           "alt": "Gatos",
           "ancho": 1280,
-          "alto": 959,
+          "alto": 698,
           "titulo": "Gatos",
           "texto": "Alimento, accesorios y cuidado pensado para el bienestar de tu gato.",
           "enlace": "#productos",
@@ -96,7 +96,7 @@
           "mensajeWhatsApp": "Hola, quisiera consultar por alimento y nutrición para mascotas",
           "fotos": [
             {
-              "foto": "assets/img/accesorios-1.jpg",
+              "foto": "assets/img/alimento-1.jpg",
               "alt": "Alimento y nutrición para perros y gatos",
               "ancho": 900,
               "alto": 415
@@ -106,17 +106,9 @@
               "alt": "Bolsas de alimento balanceado para perros Fawna",
               "ancho": 675,
               "alto": 900
-            },
-            {
-              "foto": "assets/img/camas-1.jpg",
-              "alt": "Alimento y nutrición para perros y gatos",
-              "ancho": 900,
-              "alto": 415
             }
           ],
-          "categorias": [
-            "alimentos"
-          ],
+          "categorias": [],
           "destacado": false
         },
         {
@@ -176,7 +168,7 @@
             }
           ],
           "categorias": [
-            "transporte"
+            "mochilas-y-transportadoras"
           ],
           "destacado": false
         },
@@ -211,7 +203,9 @@
         {
           "titulo": "Juguetes para ellos",
           "descripcion": "Juguetes para el juego y el entretenimiento diario de tus mascotas.",
-          "mascotas": [],
+          "mascotas": [
+            "perros"
+          ],
           "precio": "",
           "mensajeWhatsApp": "Hola, quisiera consultar por juguetes para mascotas",
           "fotos": [
@@ -226,90 +220,61 @@
           "destacado": false
         },
         {
-          "titulo": "Paisaje Salta",
-          "descripcion": "plaza 9 de julio con infernales.",
-          "mascotas": [],
-          "categorias": [
-            "categoria-6"
+          "titulo": "Producto nuevo",
+          "descripcion": "",
+          "mascotas": [
+            "perros",
+            "gatos"
           ],
-          "destacado": false,
-          "precio": "50000",
-          "mensajeWhatsApp": "Holaaaaa probandooo pnalelll",
-          "fotos": [
-            {
-              "foto": "assets/img/s-6e05c7.jpg",
-              "alt": "",
-              "ancho": 860,
-              "alto": 571
-            }
-          ]
-        },
-        {
-          "titulo": "estatua",
-          "descripcion": "estatua monuimentop guemes ",
-          "mascotas": [],
-          "categorias": [
-            "categoria-6"
-          ],
-          "destacado": false,
-          "precio": "3000",
-          "mensajeWhatsApp": "pruebaaaa xd",
-          "fotos": [
-            {
-              "foto": "assets/img/ad478230c5724cd47817dd6b2dfc1787-a0bba5.jpg",
-              "alt": "",
-              "ancho": 860,
-              "alto": 571
-            },
-            {
-              "foto": "assets/img/favicon.svg",
-              "alt": "",
-              "ancho": 64,
-              "alto": 64
-            },
-            {
-              "foto": "assets/img/ad478230c5724cd47817dd6b2dfc1787-a0bba5.jpg",
-              "alt": "",
-              "ancho": 860,
-              "alto": 571
-            }
-          ]
-        },
-        {
-          "titulo": "Alimento Pedigree Cachorro Sano Crecimiento",
-          "descripcion": "Bolsa de alimento de 24Kg \nPara cachorros de 3Kd\n",
-          "mascotas": [],
-          "categorias": [
-            "alimentos"
-          ],
-          "destacado": false,
-          "precio": "25000",
+          "precio": "",
           "mensajeWhatsApp": "",
           "fotos": [
             {
-              "foto": "assets/img/d-nq-np-2x-946176-mlu118221925922-102026-620f19.jpg",
+              "foto": "assets/img/seccion-gatos.jpg",
               "alt": "",
-              "ancho": 827,
-              "alto": 619
+              "ancho": 1280,
+              "alto": 698
             }
-          ]
+          ],
+          "categorias": [
+            "nuevo"
+          ],
+          "destacado": false
         },
         {
-          "titulo": "preubaaa",
-          "descripcion": "Imagenes. huellas",
-          "mascotas": [],
-          "categorias": [
-            "categoria-7"
+          "titulo": "Producto nuevo",
+          "descripcion": "",
+          "mascotas": [
+            "perros",
+            "gatos"
           ],
-          "destacado": false,
           "precio": "",
-          "mensajeWhatsApp": "sdasdas",
+          "mensajeWhatsApp": "",
           "fotos": [
             {
-              "foto": "assets/img/favicon-01fd28.jpg",
+              "foto": "assets/img/alimento-1.jpg",
               "alt": "",
-              "ancho": 64,
-              "alto": 48
+              "ancho": 900,
+              "alto": 415
+            }
+          ],
+          "categorias": [],
+          "destacado": false
+        },
+        {
+          "titulo": "Producto nuevo",
+          "descripcion": "",
+          "mascotas": [],
+          "categorias": [],
+          "destacado": false,
+          "precio": "",
+          "mensajeWhatsApp": "",
+          "fotos": [
+            {
+              "foto": "assets/img/ad478230c5724cd47817dd6b2dfc1787-a0bba5.jpg",
+              "alt": "",
+              "ancho": 860,
+              "alto": 571
             }
           ]
         }
@@ -321,12 +286,12 @@
           "titulo": "Alimentos"
         },
         {
-          "id": "transporte",
-          "titulo": "Transporte"
-        },
-        {
           "id": "descanso",
           "titulo": "Descanso"
+        },
+        {
+          "id": "transporte",
+          "titulo": "Transporte"
         },
         {
           "id": "accesorios",
@@ -337,20 +302,12 @@
           "titulo": "Juguetes"
         },
         {
-          "id": "categoria-6",
-          "titulo": "paisaje prueba"
+          "id": "mochilas-y-transportadoras",
+          "titulo": "Mochilas y transportadoras"
         },
         {
-          "id": "categoria-7",
-          "titulo": "Categoría de Prueba"
-        },
-        {
-          "id": "categoria-8",
-          "titulo": "Prueba 2"
-        },
-        {
-          "id": "categoria-9",
-          "titulo": "Prueba 3"
+          "id": "nuevo",
+          "titulo": "Nuevo"
         }
       ]
     },
@@ -359,7 +316,7 @@
       "id": "nosotros",
       "eyebrow": "Nuestro local",
       "titulo": "Una tienda pensada para ellos",
-      "texto": "En La Boutique Cat & Dog elegimos cada producto pensando en el bienestar de tu mascota. Te acompañamos con atención personalizada para que encuentres lo que buscás.",
+      "texto": "Nuestro local",
       "vinetas": [
         "Atención personalizada en el local",
         "Productos para perros y gatos",
