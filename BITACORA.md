@@ -648,6 +648,25 @@ Todo en local; la publicación con git se hace al final de la tanda. Contenido d
 
 ---
 
+## 2026-11-08 — Botón «Filtros» y enlaces de soporte (tercera tanda)
+
+### Botón para ocultar/mostrar filtros (web)
+- La sección Productos mostraba siempre los dos grupos de filtros (mascota + etiquetas), que con muchas categorías ocupan mucho. Nuevo botón minimalista **«Filtros»** (ícono de embudo + ▾) junto al buscador: pliega/despliega con animación suave (`max-height` + opacidad), expone `aria-expanded` y **conserva la selección** al ocultar/mostrar. La preferencia se guarda en la sesión del navegador.
+- Verificado headless: arranca desplegado, se pliega, se despliega, chip activo intacto, 0 errores JS.
+
+### Enlaces de soporte a `estalingradocorp.com.ar/soporte/soporte.html`
+- **Web**: en el pie, junto a «Aviso de privacidad · Términos», un enlace con ícono de auriculares («Soporte», pestaña nueva). Ubicación decidida para no cargar el header (que ya tiene menú, WhatsApp e ícono de usuario).
+- **Panel**: ícono de soporte en la **barra superior** (junto al «?» de ayuda) y enlace **«¿Problemas para entrar? Ir a soporte»** en la pantalla de login — justo donde más se necesita si el ingreso falla.
+- Ambos con `target="_blank" rel="noopener"` y URL validada con `hrefSeguro()`.
+- Verificado headless: enlace en el pie, ícono en topbar y enlace en login, 0 errores JS.
+
+### Contenido y escaneo de esa jornada
+- El negocio sumó productos y categorías en local («Categoría de Prueba», «Prueba 2/3», foto de ícono nueva, datos en `data/*.json`): integrados al commit.
+- Escaneo de estrés (34 productos, carrusel de 10 fotos, payloads XSS, móvil): sin caídas, sin desbordes, 0 errores (detalle en la entrada anterior).
+- El commit de esta tanda se sube a `origin` (si el acceso de escritura sigue bloqueado, queda en local con instrucciones de desbloqueo en `guias/ESTADO-ACTUAL.md`).
+
+---
+
 ## 2026-11-07 — Migración a Estalingradocorp, Cloudflare y panel sin GitHub para el cliente
 
 Tanda larga: el sitio pasó de `laboutiquecatydog/laboutiquecatydog.github.io` a `Estalingradocorp/laboutiquecatydog.github.io` (dueño nuevo), dominio propio en Cloudflare cuenta `nicotips27`, certificado HTTPS pendiente y panel con usuario/contraseña literal (sin cuenta de GitHub para el cliente).

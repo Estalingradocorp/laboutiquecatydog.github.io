@@ -283,7 +283,7 @@
             "alimentos"
           ],
           "destacado": false,
-          "precio": "",
+          "precio": "25000",
           "mensajeWhatsApp": "",
           "fotos": [
             {
@@ -291,6 +291,25 @@
               "alt": "",
               "ancho": 827,
               "alto": 619
+            }
+          ]
+        },
+        {
+          "titulo": "preubaaa",
+          "descripcion": "Imagenes. huellas",
+          "mascotas": [],
+          "categorias": [
+            "categoria-7"
+          ],
+          "destacado": false,
+          "precio": "",
+          "mensajeWhatsApp": "sdasdas",
+          "fotos": [
+            {
+              "foto": "assets/img/favicon-01fd28.jpg",
+              "alt": "",
+              "ancho": 64,
+              "alto": 48
             }
           ]
         }
@@ -320,6 +339,18 @@
         {
           "id": "categoria-6",
           "titulo": "paisaje prueba"
+        },
+        {
+          "id": "categoria-7",
+          "titulo": "Categoría de Prueba"
+        },
+        {
+          "id": "categoria-8",
+          "titulo": "Prueba 2"
+        },
+        {
+          "id": "categoria-9",
+          "titulo": "Prueba 3"
         }
       ]
     },

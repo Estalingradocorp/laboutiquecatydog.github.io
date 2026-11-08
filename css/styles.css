@@ -570,7 +570,40 @@ button { font-family: inherit; }
   align-items: center;
   gap: 10px;
   margin-bottom: clamp(24px, 3vw, 34px);
+  max-height: 420px;
+  overflow: hidden;
+  opacity: 1;
+  transition: max-height 0.4s var(--ease-soft), opacity 0.3s var(--ease-soft), margin-bottom 0.4s var(--ease-soft);
 }
+.product-filters.is-cerrado {
+  max-height: 0;
+  opacity: 0;
+  margin-bottom: 0;
+  pointer-events: none;
+}
+
+/* Botón minimalista para ocultar/mostrar los filtros */
+.filtros-toggle {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 18px;
+  border: 1px solid var(--gray-200);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--black);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s var(--ease-soft), background 0.2s var(--ease-soft);
+}
+.filtros-toggle svg { width: 17px; height: 17px; }
+.filtros-toggle:hover { border-color: var(--gray-300); background: var(--gray-100); }
+.filtros-toggle-flecha { font-size: 0.7rem; color: var(--gray-600); transition: transform 0.3s var(--ease-soft); }
+.filtros-toggle[aria-expanded="false"] .filtros-toggle-flecha { transform: rotate(-90deg); }
 .filter-group {
   display: flex;
   flex-wrap: wrap;
@@ -987,6 +1020,9 @@ button { font-family: inherit; }
 /* Huella legal como enlace: se ve como texto, se subraya al pasar el mouse */
 .footer-bottom a.enlace-copyright { color: inherit; text-decoration: none; }
 .footer-bottom a.enlace-copyright:hover { text-decoration: underline; }
+/* Enlace de soporte con ícono (pie) */
+.footer-soporte { display: inline-flex; align-items: center; gap: 6px; }
+.footer-soporte svg { width: 14px; height: 14px; }
 
 /* --------------------------- WhatsApp FAB ------------------------------- */
 .whatsapp-fab {

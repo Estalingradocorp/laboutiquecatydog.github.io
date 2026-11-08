@@ -388,6 +388,25 @@
       seleccion[grupo.getAttribute("data-filter-group")] = "all";
     });
 
+    /* Botón «Filtros»: pliega/despliega los grupos sin perder la
+       selección (con muchas categorías, no ocupan pantalla). La
+       preferencia se guarda en la sesión del navegador. */
+    var botonFiltros = document.querySelector("[data-filtros-toggle]");
+    if (botonFiltros && zona) {
+      var CLAVE_FILTROS = "BQ_FILTROS";
+      var aplicarEstadoFiltros = function (abierto) {
+        zona.classList.toggle("is-cerrado", !abierto);
+        botonFiltros.setAttribute("aria-expanded", abierto ? "true" : "false");
+        try { sessionStorage.setItem(CLAVE_FILTROS, abierto ? "1" : "0"); } catch (e) {}
+      };
+      var guardado = null;
+      try { guardado = sessionStorage.getItem(CLAVE_FILTROS); } catch (e2) {}
+      if (guardado === "0") { aplicarEstadoFiltros(false); }
+      botonFiltros.addEventListener("click", function () {
+        aplicarEstadoFiltros(zona.classList.contains("is-cerrado"));
+      });
+    }
+
     var texto = "";
 
     function coincide(card) {

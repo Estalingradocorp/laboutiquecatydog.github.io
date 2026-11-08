@@ -218,7 +218,10 @@
       "</div>" +
       '<div class="container footer-bottom">' +
       "<p>&copy; <span data-year>2026</span> " + copyright + "</p>" +
-      '<p class="footer-legal"><a href="privacidad.html">Aviso de privacidad</a> &middot; <a href="terminos.html">Términos y condiciones</a></p>' +
+      '<p class="footer-legal"><a href="privacidad.html">Aviso de privacidad</a> &middot; <a href="terminos.html">Términos y condiciones</a> &middot; ' +
+      '<a class="footer-soporte" href="' + hrefSeguro("https://estalingradocorp.com.ar/soporte/soporte.html") + '" target="_blank" rel="noopener">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 13a8 8 0 0 1 16 0"/><rect x="2.5" y="13" width="4" height="7" rx="2"/><rect x="17.5" y="13" width="4" height="7" rx="2"/><path d="M19.5 20c-.8 1.6-2.3 2-4.5 2h-2"/></svg>' +
+      "Soporte</a></p>" +
       '<p class="footer-legal">Desarrollo y operación: Estalingrado Corp</p>' +
       "</div>"
     );
@@ -482,10 +485,12 @@
           "</div>";
       }
 
-      filtros = '<div class="product-filters" data-product-filters>' + chipsMascota + chipsCategoria + "</div>";
+      filtros = '<div class="product-filters" id="product-filters" data-product-filters>' + chipsMascota + chipsCategoria + "</div>";
     }
 
-    /* --- Buscador + contador --- */
+    /* --- Buscador + contador ---
+       El botón «Filtros» pliega/despliega los grupos sin perder la
+       selección: con muchas categorías, no ocupan pantalla. */
     var buscador = b.buscador === false ? "" :
       '<form class="catalog-search" data-catalog-search role="search">' +
       '<span class="buscar-lupa" aria-hidden="true">' +
@@ -495,7 +500,14 @@
       '<button type="button" class="catalog-search-clear" data-search-clear aria-label="Limpiar la búsqueda" hidden>&times;</button>' +
       "</form>";
 
-    var toolbar = '<div class="catalog-toolbar">' + buscador + "</div>";
+    var botonFiltros = b.mostrarFiltros
+      ? '<button type="button" class="filtros-toggle" data-filtros-toggle aria-expanded="true" aria-controls="product-filters">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>' +
+        "Filtros" +
+        '<span class="filtros-toggle-flecha" aria-hidden="true">▾</span></button>'
+      : "";
+
+    var toolbar = '<div class="catalog-toolbar">' + buscador + botonFiltros + "</div>";
 
     /* Paginación del catálogo: JS la activa cuando hay más de 6 productos
        (bloques de 6 por página, respetando el filtro activo). */

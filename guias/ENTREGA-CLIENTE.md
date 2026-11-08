@@ -121,6 +121,8 @@ Como **respaldo físico** de entrega (buena práctica), NO como requisito. Graba
 ## 5. El acceso al panel
 
 - **Ícono de usuario (arriba a la derecha de la web):** abre el panel. Sigue pidiendo login con usuario y contraseña.
+- **Botón «Filtros»** junto al buscador del catálogo: pliega/despliega los grupos de filtros (Perros/Gatos + categorías) para que no ocupen pantalla; la selección elegida no se pierde.
+- **Soporte:** ícono de auriculares en el pie de la web, en la barra superior del panel y «¿Problemas para entrar? Ir a soporte» en el login → `estalingradocorp.com.ar/soporte/soporte.html` (pestaña nueva).
 - **Forma principal:** el link `…/admin/editor.html` guardado como **marcador/favorito** en su navegador y su celu (enseñale a guardarlo en la pantalla de inicio del celu — es un atajo de navegador, se llama "Agregar a la pantalla principal").
 - `/admin/` también redirige al panel.
 - Recordale: la sesión vive en la pestaña; si la cierra, vuelve a "Iniciar sesión".
