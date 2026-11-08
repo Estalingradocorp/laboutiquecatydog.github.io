@@ -126,26 +126,14 @@
             "perros",
             "gatos"
           ],
-          "precio": "",
+          "precio": "20000",
           "mensajeWhatsApp": "Hola, quisiera consultar por camas y descanso para mascotas",
           "fotos": [
             {
-              "foto": "assets/img/camas-1.jpg",
+              "foto": "assets/img/camas-1-42b6ca.jpg",
               "alt": "Cama fucsia para mascotas",
               "ancho": 900,
-              "alto": 415
-            },
-            {
-              "foto": "assets/img/camas-2.jpg",
-              "alt": "Cama para mascotas",
-              "ancho": 687,
-              "alto": 900
-            },
-            {
-              "foto": "assets/img/camas-3.jpg",
-              "alt": "Cama y rincón de descanso para mascotas",
-              "ancho": 688,
-              "alto": 900
+              "alto": 674
             }
           ],
           "categorias": [
