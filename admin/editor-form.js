@@ -1035,7 +1035,23 @@
       info.appendChild(detalle);
       fila.appendChild(info);
 
-      fila.appendChild(botonMini("✎", "Editar los datos de esta foto", function () {
+      /* El lápiz edita la imagen que ya está (recorte + zoom), igual
+         que antes de subirla; «Datos» despliega texto alt y medidas. */
+      fila.appendChild(botonMini("✎", "Editar foto (recortar y zoom)", function () {
+        if (!window.BQMedia || !foto.foto) { return; }
+        window.BQMedia.abrir({
+          titulo: "Editar foto " + (i + 1),
+          tipo: "foto",
+          edicionDe: foto.foto,
+          alElegir: function (media) {
+            foto.foto = media.imagen;
+            if (media.ancho) { foto.ancho = media.ancho; }
+            if (media.alto) { foto.alto = media.alto; }
+            alCambiar(true);
+          }
+        });
+      }));
+      fila.appendChild(botonMini("···", "Datos de esta foto (texto alt y medidas)", function () {
         var campos = fila.nextElementSibling;
         if (campos) { campos.hidden = !campos.hidden; }
       }));

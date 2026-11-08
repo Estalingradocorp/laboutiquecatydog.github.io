@@ -252,26 +252,87 @@
     if (boton) { boton.hidden = n === 0; }
   }
 
+  /* Carga la imagen de un ítem de galería para editarla. */
+  function cargarImagenRuta(ruta) {
+    var pedir;
+    if (esLocal()) {
+      pedir = fetch("/" + ruta).then(function (res) {
+        if (!res.ok) { throw new Error("No se pudo leer la imagen."); }
+        return res.blob();
+      });
+    } else {
+      pedir = apiFetch("/repos/" + REPO + "/contents/" + ruta + "?ref=" + BRANCH,
+        { headers: { Accept: "application/vnd.github.raw" } })
+        .then(function (res) { if (!res.ok) { alFallar(res); } return res.blob(); });
+    }
+    return pedir.then(function (blob) { return cargarImagen(blob); });
+  }
+
+  /* Las imágenes de la galería también se editan (recorte + zoom) una
+     por una antes de confirmar: cada recorte genera un archivo nuevo
+     que se sube y, al terminar la cola, se aplican todas juntas. */
   function confirmarSeleccion() {
     var cfg = ACTUAL;
     if (!cfg || !seleccion.length) { return; }
-    var elegidas = seleccion.slice();
+    var cola = seleccion.slice();
+    var total = cola.length;
+    var hechas = [];
     seleccion = [];
-    /* Cada imagen necesita sus medidas: se aseguran las miniaturas */
-    Promise.all(elegidas.map(function (item) {
-      return miniaturaDe(item).then(function (r) {
-        return {
-          imagen: item.path,
-          srcset: cfg.conSrcset ? variantesGaleria(item, r.ancho) : null,
-          ancho: r.ancho,
-          alto: r.alto
-        };
+    actualizarSeleccion();
+    activarPestana("subir");
+
+    var siguiente = function () {
+      var item = cola.shift();
+      var numero = hechas.length + 1;
+      if (!item) {
+        listaGaleria = null;
+        miniaturas = {};
+        cerrar();
+        if (cfg.alElegirMultiple) { cfg.alElegirMultiple(hechas); }
+        else if (cfg.alElegir && hechas.length) { cfg.alElegir(hechas[0]); }
+        return;
+      }
+      cargarImagenRuta(item.path).then(function (r) {
+        abrirRecorte(r.img, cfg, function (principal, chica) {
+          var formato = cfg.tipo === "logo" ? "image/png" : "image/jpeg";
+          var ext = cfg.tipo === "logo" ? ".png" : ".jpg";
+          var nombre = slug(item.name) + "-" + sufijo();
+          var archivos = [{
+            ruta: CARPETA + "/" + nombre + ext,
+            b64: principal.toDataURL(formato, 0.82).split(",")[1],
+            ancho: principal.width,
+            alto: principal.height
+          }];
+          if (chica) {
+            archivos.push({
+              ruta: CARPETA + "/" + nombre + "-900" + ext,
+              b64: chica.toDataURL(formato, 0.82).split(",")[1]
+            });
+          }
+          var datos = {
+            archivos: archivos,
+            nombre: nombre + ext,
+            ancho: archivos[0].ancho,
+            alto: archivos[0].alto,
+            srcset: archivos.length > 1
+              ? archivos[1].ruta + " 900w, " + archivos[0].ruta + " " + archivos[0].ancho + "w"
+              : null,
+            prevista: principal.toDataURL(formato, 0.82)
+          };
+          subirDatos(datos).then(function () {
+            hechas.push(resultadoDe(datos));
+            siguiente();
+          }).catch(function (err) {
+            alerta(err.message);
+            siguiente();
+          });
+        }, { i: numero, total: total });
+      }).catch(function (err) {
+        alerta(err.message);
+        siguiente();
       });
-    })).then(function (medias) {
-      cerrar();
-      if (cfg.alElegirMultiple) { cfg.alElegirMultiple(medias); }
-      else if (cfg.alElegir && medias.length) { cfg.alElegir(medias[0]); }
-    });
+    };
+    siguiente();
   }
 
   /* ------------------------------ Subida -------------------------------- */
@@ -323,6 +384,144 @@
     return canvas;
   }
 
+  /* ------------------------- Editor de recorte -------------------------- */
+  /* La imagen se encuadra y se elige el zoom ANTES de subir: la vista
+     es el recorte exacto que se guarda. La escala base cubre el
+     viewport (nada se corta sin querer) y el paneo se limita para que
+     nunca queden huecos: la foto no se "rompe" al encuadrar. */
+  var REC = null;
+
+  function abrirRecorte(im, config, alListo, progreso) {
+    REC = {
+      img: im,
+      config: config,
+      alListo: alListo,
+      ratio: config.tipo === "logo" ? "1:1" : "4:3",
+      zoom: 1,
+      ox: 0,
+      oy: 0,
+      arrastrando: null
+    };
+    var caja = document.getElementById("media-recorte");
+    var viewport = document.getElementById("media-recorte-viewport");
+    var zoom = document.getElementById("media-recorte-zoom");
+    var paso = document.getElementById("media-recorte-paso");
+    document.getElementById("media-prevista").hidden = true;
+    caja.hidden = false;
+    zoom.value = 100;
+    if (paso) {
+      if (progreso && progreso.total > 1) {
+        paso.textContent = "Imagen " + progreso.i + " de " + progreso.total;
+        paso.hidden = false;
+      } else {
+        paso.hidden = true;
+      }
+    }
+    REC.ox = 0; REC.oy = 0; REC.zoom = 1;
+    aplicarRatioVista();
+    caja.querySelectorAll(".recorte-ratio").forEach(function (b) {
+      b.classList.toggle("is-activo", b.getAttribute("data-ratio") === REC.ratio);
+    });
+    pintarRecorte();
+  }
+
+  function cerrarRecorte() {
+    var caja = document.getElementById("media-recorte");
+    if (caja) { caja.hidden = true; }
+    document.getElementById("media-archivo").value = "";
+    REC = null;
+  }
+
+  function aplicarRatioVista() {
+    var viewport = document.getElementById("media-recorte-viewport");
+    if (REC.ratio === "libre") {
+      var w = REC.img.naturalWidth || 1;
+      var h = REC.img.naturalHeight || 1;
+      viewport.style.aspectRatio = (w / h).toFixed(3);
+    } else {
+      viewport.style.aspectRatio = REC.ratio.replace(":", " / ");
+    }
+  }
+
+  /* Escala base que cubre el viewport (cover) y recorte en fuente.
+     Con zoom menor a 100% la foto se aleja y entra entera (con fondo
+     neutro alrededor): así se encuadra sin cortar nada. */
+  function medidaRecorte() {
+    var viewport = document.getElementById("media-recorte-viewport");
+    var vw = viewport.clientWidth || 1;
+    var vh = viewport.clientHeight || 1;
+    var w = REC.img.naturalWidth || 1;
+    var h = REC.img.naturalHeight || 1;
+    var base = Math.max(vw / w, vh / h);
+    var escala = base * REC.zoom;
+    var anchoVisible = vw / escala;
+    var altoVisible = vh / escala;
+    return { vw: vw, vh: vh, escala: escala, anchoVisible: anchoVisible, altoVisible: altoVisible };
+  }
+
+  function limitarRecorte() {
+    var m = medidaRecorte();
+    var w = REC.img.naturalWidth || 1;
+    var h = REC.img.naturalHeight || 1;
+    /* Si la foto entra entera en un eje, se centra; si no, se limita
+       al borde para que nunca queden huecos al paneo. */
+    function eje(pos, visible, total) {
+      if (visible >= total) { return (total - visible) / 2; }
+      return Math.min(total - visible, Math.max(0, pos));
+    }
+    REC.ox = eje(REC.ox, m.anchoVisible, w);
+    REC.oy = eje(REC.oy, m.altoVisible, h);
+  }
+
+  function pintarRecorte() {
+    if (!REC) { return; }
+    limitarRecorte();
+    var m = medidaRecorte();
+    var canvas = document.getElementById("media-recorte-canvas");
+    canvas.width = m.vw;
+    canvas.height = m.vh;
+    var ctx = canvas.getContext("2d");
+    /* Fondo blanco como el JPG final: lo que se ve acá es lo que se guarda */
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, m.vw, m.vh);
+    ctx.drawImage(REC.img, -REC.ox * m.escala, -REC.oy * m.escala,
+      (REC.img.naturalWidth || 1) * m.escala, (REC.img.naturalHeight || 1) * m.escala);
+  }
+
+  function confirmarRecorte() {
+    if (!REC) { return; }
+    var config = REC.config;
+    var m = medidaRecorte();
+    var anchoMax = config.tipo === "logo" ? 600 : 1600;
+    var formato = config.tipo === "logo" ? "image/png" : "image/jpeg";
+
+    function dibujarRecorte(anchoSalida) {
+      var escalaSalida = anchoSalida / m.anchoVisible;
+      var canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(m.anchoVisible * escalaSalida));
+      canvas.height = Math.max(1, Math.round(m.altoVisible * escalaSalida));
+      var ctx = canvas.getContext("2d");
+      if (config.tipo !== "logo") {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      ctx.drawImage(REC.img, REC.ox, REC.oy, m.anchoVisible, m.altoVisible,
+        0, 0, canvas.width, canvas.height);
+      return canvas;
+    }
+
+    var recortada = (REC.img.naturalWidth || 1) > anchoMax
+      ? dibujarRecorte(anchoMax)
+      : dibujarRecorte(REC.img.naturalWidth || 1);
+    var variante = null;
+    if (config.conSrcset && recortada.width > 900) {
+      variante = dibujarRecorte(900);
+    }
+    var listo = REC.alListo;
+    cerrarRecorte();
+    if (listo) { listo(recortada, variante); }
+  }
+
   /* Procesa el archivo elegido y deja todo listo para subir */
   function procesarPendiente(archivo) {
     var config = ACTUAL;
@@ -341,27 +540,27 @@
       return;
     }
     cargarImagen(archivo).then(function (r) {
-      var anchoMax = config.tipo === "logo" ? 600 : 1600;
-      var formato = config.tipo === "logo" ? "image/png" : "image/jpeg";
-      var ext = config.tipo === "logo" ? ".png" : ".jpg";
-      var principal = dibujar(r.img, anchoMax, config.tipo);
-      var nombre = slug(archivo.name) + "-" + sufijo();
-      var archivos = [{
-        ruta: CARPETA + "/" + nombre + ext,
-        b64: principal.toDataURL(formato, 0.82).split(",")[1],
-        ancho: principal.width,
-        alto: principal.height
-      }];
-      var prevista = principal.toDataURL(formato, 0.82);
+      /* Primero se encuadra y se elige el zoom; recién ahí se genera
+         la imagen final (así nada queda cortado sin querer). */
+      abrirRecorte(r.img, config, function (principal, chica) {
+        var formato = config.tipo === "logo" ? "image/png" : "image/jpeg";
+        var ext = config.tipo === "logo" ? ".png" : ".jpg";
+        var nombre = slug(archivo.name) + "-" + sufijo();
+        var archivos = [{
+          ruta: CARPETA + "/" + nombre + ext,
+          b64: principal.toDataURL(formato, 0.82).split(",")[1],
+          ancho: principal.width,
+          alto: principal.height
+        }];
+        var prevista = principal.toDataURL(formato, 0.82);
 
-      /* Variante -900 solo cuando el campo la usa (fotos del carrusel) */
-      if (config.conSrcset && (r.img.naturalWidth || 0) > 900) {
-        var chica = dibujar(r.img, 900, config.tipo);
-        archivos.push({
-          ruta: CARPETA + "/" + nombre + "-900" + ext,
-          b64: chica.toDataURL(formato, 0.82).split(",")[1]
-        });
-      }
+        /* Variante -900 solo cuando el campo la usa (fotos del carrusel) */
+        if (chica) {
+          archivos.push({
+            ruta: CARPETA + "/" + nombre + "-900" + ext,
+            b64: chica.toDataURL(formato, 0.82).split(",")[1]
+          });
+        }
 
       pendiente = {
         archivos: archivos,
@@ -379,10 +578,43 @@
       document.getElementById("media-prevista-info").textContent =
         "Se subirá como " + pendiente.nombre + " (" + pendiente.ancho + "×" + pendiente.alto +
         (archivos.length > 1 ? " + variante -900" : "") + ")";
+      }); /* fin de abrirRecorte */
     }).catch(function (err) {
       document.getElementById("media-prevista").hidden = true;
       alerta(err.message);
     });
+  }
+
+  /* Sube los archivos ya preparados (en local: a esta carpeta; en
+     producción: un commit por imagen en GitHub). */
+  function subirDatos(datos) {
+    if (esLocal()) {
+      return datos.archivos.reduce(function (cadena, arch) {
+        return cadena.then(function () {
+          return fetch("/__local/subir-imagen", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ruta: arch.ruta, b64: arch.b64 })
+          }).then(function (res) {
+            if (!res.ok) { throw new Error("No se pudo guardar la imagen en local (código " + res.status + ")."); }
+            return res.json();
+          });
+        });
+      }, Promise.resolve());
+    }
+    return subirAGithub(datos);
+  }
+
+  function resultadoDe(datos) {
+    var resultado = {
+      imagen: datos.archivos[0].ruta,
+      srcset: datos.srcset,
+      ancho: datos.ancho,
+      alto: datos.alto
+    };
+    window.BQ_SUBIDAS = window.BQ_SUBIDAS || {};
+    window.BQ_SUBIDAS[resultado.imagen] = datos.prevista;
+    return resultado;
   }
 
   /* Un solo commit por imagen: blobs + árbol + commit + ref */
@@ -397,42 +629,14 @@
     boton.disabled = true;
     boton.textContent = "Subiendo…";
 
-    var subida;
-    if (esLocal()) {
-      /* Modo local: los archivos se escriben en assets/img/ de esta
-         carpeta a través del servidor de previsualización. */
-      subida = datos.archivos.reduce(function (cadena, arch) {
-        return cadena.then(function () {
-          return fetch("/__local/subir-imagen", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ruta: arch.ruta, b64: arch.b64 })
-          }).then(function (res) {
-            if (!res.ok) { throw new Error("No se pudo guardar la imagen en local (código " + res.status + ")."); }
-            return res.json();
-          });
-        });
-      }, Promise.resolve());
-    } else {
-      subida = subirAGithub(datos);
-    }
+    var subida = subirDatos(datos);
 
     subida
       .then(function () {
         /* La galería cambió: que la próxima apertura la vuelva a leer */
         listaGaleria = null;
         miniaturas = {};
-        var resultado = {
-          imagen: datos.archivos[0].ruta,
-          srcset: datos.srcset,
-          ancho: datos.ancho,
-          alto: datos.alto
-        };
-        /* Copia local para la vista previa: el archivo ya está subido
-           (en GitHub o en este disco) — el editor la inyecta en la
-           miniatura para verla al instante. */
-        window.BQ_SUBIDAS = window.BQ_SUBIDAS || {};
-        window.BQ_SUBIDAS[resultado.imagen] = datos.prevista;
+        var resultado = resultadoDe(datos);
         /* Si el modal se cerró durante la subida, la imagen queda subida
            pero no se aplica a ningún campo: se avisa para que la clienta
            sepa que puede elegirla desde la galería. */
@@ -561,6 +765,7 @@
     ACTUAL = null;
     seleccion = [];
     actualizarSeleccion();
+    cerrarRecorte();
     if (window.BQModales && window.BQModales.cerrar) {
       window.BQModales.cerrar(document.getElementById("modal-imagenes"));
     } else {
@@ -592,6 +797,50 @@
     document.getElementById("media-tab-galeria").addEventListener("click", function () { activarPestana("galeria"); });
     document.getElementById("media-tab-subir").addEventListener("click", function () { activarPestana("subir"); });
     document.getElementById("media-confirmar").addEventListener("click", confirmarSeleccion);
+
+    /* Editor de recorte: proporciones, zoom y paneo por arrastre */
+    var cajaRecorte = document.getElementById("media-recorte");
+    cajaRecorte.querySelectorAll(".recorte-ratio").forEach(function (b) {
+      b.addEventListener("click", function () {
+        if (!REC) { return; }
+        REC.ratio = b.getAttribute("data-ratio");
+        cajaRecorte.querySelectorAll(".recorte-ratio").forEach(function (o) {
+          o.classList.toggle("is-activo", o === b);
+        });
+        aplicarRatioVista();
+        pintarRecorte();
+      });
+    });
+    document.getElementById("media-recorte-zoom").addEventListener("input", function (ev) {
+      if (!REC) { return; }
+      REC.zoom = Math.max(0.25, Number(ev.target.value) / 100);
+      pintarRecorte();
+    });
+    document.getElementById("media-recorte-confirmar").addEventListener("click", confirmarRecorte);
+    document.getElementById("media-recorte-cancelar").addEventListener("click", function () {
+      cerrarRecorte();
+      alerta("Se canceló la subida de la imagen.");
+    });
+
+    var viewport = document.getElementById("media-recorte-viewport");
+    viewport.addEventListener("pointerdown", function (ev) {
+      if (!REC) { return; }
+      REC.arrastrando = { x: ev.clientX, y: ev.clientY, ox: REC.ox, oy: REC.oy };
+      viewport.setPointerCapture(ev.pointerId);
+    });
+    viewport.addEventListener("pointermove", function (ev) {
+      if (!REC || !REC.arrastrando) { return; }
+      var m = medidaRecorte();
+      REC.ox = REC.arrastrando.ox - (ev.clientX - REC.arrastrando.x) / m.escala;
+      REC.oy = REC.arrastrando.oy - (ev.clientY - REC.arrastrando.y) / m.escala;
+      pintarRecorte();
+    });
+    viewport.addEventListener("pointerup", function () {
+      if (REC) { REC.arrastrando = null; }
+    });
+    viewport.addEventListener("pointercancel", function () {
+      if (REC) { REC.arrastrando = null; }
+    });
     document.getElementById("media-archivo").addEventListener("change", function (ev) {
       var f = ev.target.files && ev.target.files[0];
       if (f && ACTUAL) { procesarPendiente(f); }
@@ -622,6 +871,48 @@
         window.BQModales.abrir(document.getElementById("modal-imagenes"));
       } else {
         document.getElementById("modal-imagenes").hidden = false;
+      }
+      /* Editar una imagen que ya está: va directo al recorte */
+      if (ACTUAL.edicionDe) {
+        activarPestana("subir");
+        cargarImagenRuta(ACTUAL.edicionDe).then(function (r) {
+          abrirRecorte(r.img, ACTUAL, function (principal, chica) {
+            var formato = ACTUAL.tipo === "logo" ? "image/png" : "image/jpeg";
+            var ext = ACTUAL.tipo === "logo" ? ".png" : ".jpg";
+            var nombre = slug(ACTUAL.edicionDe.split("/").pop()) + "-" + sufijo();
+            var archivos = [{
+              ruta: CARPETA + "/" + nombre + ext,
+              b64: principal.toDataURL(formato, 0.82).split(",")[1],
+              ancho: principal.width,
+              alto: principal.height
+            }];
+            if (chica) {
+              archivos.push({
+                ruta: CARPETA + "/" + nombre + "-900" + ext,
+                b64: chica.toDataURL(formato, 0.82).split(",")[1]
+              });
+            }
+            var datos = {
+              archivos: archivos,
+              nombre: nombre + ext,
+              ancho: archivos[0].ancho,
+              alto: archivos[0].alto,
+              srcset: archivos.length > 1
+                ? archivos[1].ruta + " 900w, " + archivos[0].ruta + " " + archivos[0].ancho + "w"
+                : null,
+              prevista: principal.toDataURL(formato, 0.82)
+            };
+            subirDatos(datos).then(function () {
+              listaGaleria = null;
+              miniaturas = {};
+              var resultado = resultadoDe(datos);
+              var elegir = ACTUAL.alElegir;
+              cerrar();
+              if (elegir) { elegir(resultado); }
+            }).catch(function (err) { alerta(err.message); });
+          });
+        }).catch(function (err) { alerta(err.message); });
+        return;
       }
       activarPestana("galeria");
     },

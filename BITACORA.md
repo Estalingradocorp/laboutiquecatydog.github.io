@@ -589,6 +589,65 @@ Los scripts de prueba viven en `%TEMP%\opencode\` (no se publican).
 
 ---
 
+## 2026-11-08 — Auditoría de seguridad y correcciones (sin salir del local)
+
+A pedido del usuario: revisión completa en modo atacante (solo lectura + pruebas en loopback local; **sin tocar producción ni el Worker desplegado**). El repo aún no se pushea (permiso de escritura pendiente en `Estalingradocorp`); todo queda commiteado en local y se sube cuando se autorice.
+
+### Hallazgo 1 (corregido): CSRF local — cualquier web podía escribir archivos en la PC
+
+`tools/serve.js` aceptaba los `POST /__local/*` sin validar origen ni tipo: un sitio malicioso visitado mientras corre el servidor local podía escribir `data/pagina.json`, `data/sitio.json` o imágenes en `assets/img/` (POST simple sin preflight CORS). Agravante: aceptaba **`svg`** (script en el origen `localhost` si se navega directo).
+
+**Corrección:** los endpoints `/__local/*` exigen origen local (o ausente) **y** `Content-Type: application/json`; el endpoint de imágenes rechaza `svg`. Verificado con origen forjado real (Node directo): cruzado → `403`, sin preflight → `403`, legítimo → `200`, `svg` → `400`.
+
+### Hallazgo 2 (corregido): XSS almacenado vía `empresaUrl`
+
+`buildFooter()` usaba `a()` (solo escapa comillas) en vez de `hrefSeguro()`: un valor `javascript:…` en ese dato ejecutaba script al hacer clic en el copyright. Ahora usa `hrefSeguro()` como el resto de las URL. Verificado: sin `javascript:` en el HTML servido.
+
+### Hallazgo 3 (abierto, externo): Worker `401` vacío
+
+Con credenciales incorrectas, el Worker responde `401` sin cuerpo → navegador en blanco sin mensaje. El código del Worker no está en este repo (vive en Cloudflare / `Estalingradocorp/sveltia-cms-auth`): no se pudo corregir acá. El modo local lo rodea para probar; queda anotado como pendiente con el arreglo recomendado (devolver el formulario con mensaje de error).
+
+### Verificado como correcto (sin cambios)
+
+Escape sistemático (`e()`/`a()`/`hrefSeguro()`, WhatsApp y Maps con `encodeURIComponent`), CSP en sitio y panel (hash del único inline verificado), token solo en `sessionStorage` y solo hacia `api.github.com`, servidor local en `127.0.0.1` con bloqueo de path traversal, sin secretos en el repo, documentación interna excluida de la publicación, sin dependencias.
+
+Informe completo con prioridades y plan de corrección: `guias/INFORME-SEGURIDAD.md` (creado en esta tanda; antes esa ruta solo se mencionaba en el README sin existir como archivo propio).
+
+---
+
+## 2026-11-08 — Editor de recorte, pulido final y seguridad (segunda tanda)
+
+Todo en local; la publicación con git se hace al final de la tanda. Contenido del negocio incluido: producto «Alimento Pedigree…» (8º), categoría nueva y fotos subidas por el usuario.
+
+### Editor de recorte (antes de subir y desde la galería)
+
+- Al elegir un archivo en «Subir desde la PC» aparece un **editor de recorte**: proporciones 4:3 / 1:1 / 3:4 / Libre, **zoom de 25 % a 400 %** (se puede alejar para encuadrar sin cortar) y paneo por arrastre **limitado para que nunca queden huecos**. Fondo **blanco** en la vista previa, igual al JPG final.
+- La **galería también se edita**: al confirmar la selección, cada imagen pasa por el recorte una por una («Imagen 1 de 2»…) y al terminar se aplican todas juntas (la primera al campo, el resto como fotos nuevas).
+- **Lápiz ✎** en la ventana de producto: edita la foto que ya está con el mismo editor (antes solo desplegaba datos). Los datos (texto alt/medidas) pasaron al botón **«···»**.
+- La miniatura del producto en el panel pasó a `contain` (y 68×84): las bolsas en vertical ya no se cortan a la mitad.
+
+### Pulido de la web y el panel
+
+- **Botones «Consultar disponibilidad» minimalistas**: contorno fino, texto oscuro, hover invertido sin sombras pesadas (antes: bloque rojo sólido). Aprobado por el usuario; el rojo queda solo para WhatsApp.
+- **Zoom de tarjetas Perros/Gatos contenido**: la foto vive en un marco `.category-frame` con `overflow: hidden` (antes se derramaba sobre el texto de abajo); ease más suave de 0,9 s.
+- **Aviso de vista previa auto-ocultable**: tras guardar/publicar se va solo a los 3 s con desvanecimiento suave.
+- **Orden fijo de campos** en la ventana de producto (Categorías y Destacado siempre antes de las fotos, sin importar el orden de claves del JSON).
+- **«Destacado» alineado**: fila completa con checkbox alineado arriba.
+- **Doble «✕» del buscador**: se oculta la ✕ nativa del navegador (`::-webkit-search-cancel-button`); queda solo la propia.
+- **Paginación anclada (versión final)**: al filtrar/buscar solo se repinta (sin tocar scroll ni foco ni «ancla de scroll», para no saltar al tipear); al tocar un número, la paginación se ancla en su lugar de pantalla compensando el achicamiento del catálogo. Verificado con clic de mouse real.
+
+### Seguridad (ver `guias/INFORME-SEGURIDAD.md`)
+
+- **CSRF local cerrado**: los endpoints `/__local/*` exigen origen local + `Content-Type: application/json`; se rechaza `svg` en la subida.
+- **XSS vía `empresaUrl` cerrado**: usa `hrefSeguro()` como el resto de las URL.
+- Verificado con exploit simulado (origen forjado real por Node directo): cruzado → `403`, sin preflight → `403`, legítimo → `200`, `svg` → `400`.
+
+### Publicación
+
+- Commit de esta tanda (código + contenido del negocio + documentación) y push a `origin` cuando el dueño autorice el acceso de escritura.
+
+---
+
 ## 2026-11-07 — Migración a Estalingradocorp, Cloudflare y panel sin GitHub para el cliente
 
 Tanda larga: el sitio pasó de `laboutiquecatydog/laboutiquecatydog.github.io` a `Estalingradocorp/laboutiquecatydog.github.io` (dueño nuevo), dominio propio en Cloudflare cuenta `nicotips27`, certificado HTTPS pendiente y panel con usuario/contraseña literal (sin cuenta de GitHub para el cliente).

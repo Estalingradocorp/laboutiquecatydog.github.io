@@ -48,10 +48,29 @@ function send(res, status, body, type) {
 
 /* Guardado local (solo servidor de previsualización): el panel en
    modo local puede escribir data/*.json en esta carpeta para ver los
-   cambios en la web local. Solo estos dos archivos, nada más. */
+   cambios en la web local. Solo estos dos archivos, nada más.
+   Defensa CSRF: sin chequeo de origen, cualquier sitio web que el
+   usuario visite podría POSTear a localhost y escribir archivos. Se
+   exige origen local (o ausente, petición no-navegador) y
+   Content-Type application/json (un pedido cruzado con ese tipo
+   dispara preflight CORS, que el servidor no aprueba). */
+function esOrigenLocal(req) {
+  const origen = req.headers.origin;
+  if (!origen) { return true; }
+  return origen === "http://localhost" || origen.startsWith("http://localhost:") ||
+    origen === "http://127.0.0.1" || origen.startsWith("http://127.0.0.1:");
+}
+
+function esPeticionLocal(req) {
+  if (!esOrigenLocal(req)) { return false; }
+  const tipo = String(req.headers["content-type"] || "");
+  return tipo.indexOf("application/json") !== -1;
+}
+
 const ARCHIVOS_LOCALES = ["data/pagina.json", "data/sitio.json"];
 
 function responderGuardarLocal(req, res) {
+  if (!esPeticionLocal(req)) { return send(res, 403, "Origen no permitido"); }
   const chunks = [];
   let total = 0;
   req.on("data", (chunk) => {
@@ -79,6 +98,7 @@ function responderGuardarLocal(req, res) {
 /* Imágenes en modo local: listar assets/img/ y subir archivos ahí
    (para probar la carga de imágenes sin pasar por GitHub). */
 function responderImagenesLocal(req, res) {
+  if (!esOrigenLocal(req)) { return send(res, 403, "Origen no permitido"); }
   const carpeta = path.join(root, "assets", "img");
   fs.readdir(carpeta, (err, nombres) => {
     if (err) return send(res, 500, "No se pudo leer la carpeta de imágenes");
@@ -95,6 +115,7 @@ function responderImagenesLocal(req, res) {
 }
 
 function responderSubirImagenLocal(req, res) {
+  if (!esPeticionLocal(req)) { return send(res, 403, "Origen no permitido"); }
   const chunks = [];
   let total = 0;
   req.on("data", (chunk) => {
@@ -109,8 +130,11 @@ function responderSubirImagenLocal(req, res) {
     if (!datos || typeof datos.ruta !== "string" || typeof datos.b64 !== "string") {
       return send(res, 400, "Datos incompletos");
     }
+    /* Sin svg: un SVG con script, servido como image/svg+xml y
+       abierto directo, ejecuta script en el origen localhost (XSS
+       almacenado local). Las subidas reales son JPEG/PNG del canvas. */
     if (datos.ruta.indexOf("..") !== -1 || datos.ruta.indexOf("assets/img/") !== 0 ||
-        !/\.(jpg|jpeg|png|webp|svg)$/i.test(datos.ruta)) {
+        !/\.(jpg|jpeg|png|webp)$/i.test(datos.ruta)) {
       return send(res, 400, "Ruta no permitida");
     }
     const destino = path.join(root, datos.ruta);

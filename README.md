@@ -197,7 +197,8 @@ Es una lista `secciones`. **El orden de la lista es el orden en la web.** Cada s
 | Editar cualquier texto | Clic sobre el texto en la vista previa (títulos, párrafos, botones, menú, pie, viñetas, productos) y escribir encima. También en el modo «Textos» con formularios |
 | Cambiar una imagen | Clic sobre la foto en la vista previa → galería del repo o subir una nueva |
 | Subir imágenes | Pestaña «Subir desde la PC»: canvas la optimiza (JPEG 82 %, máx. 1600 px + variante `-900` cuando el campo la usa; el logo mantiene PNG). Va al repo en **un solo commit por imagen** (Git Data API). En modo local se escribe en `assets/img/` de la carpeta |
-| Elegir varias imágenes de una vez | En la galería se tocan las fotos (✓) y se confirma con el contador + botón junto a «Subir desde la PC»: la primera va al campo y **el resto se agrega** como fotos/slides nuevas en la misma lista |
+| Elegir varias imágenes de una vez | En la galería se tocan las fotos (✓) y se confirma con el contador + botón junto a «Subir desde la PC»: cada una pasa por el **editor de recorte** (proporción, zoom 25–400 %, arrastre) una por una y al terminar **se agregan todas** como fotos/slides nuevas en la misma lista |
+| Editar una foto ya subida | En la ventana de producto, el **lápiz ✎** abre el editor de recorte con la foto existente (antes solo desplegaba datos; esos están ahora en **«···»**) |
 | Agregar / quitar / reordenar secciones | Lista de la izquierda: drag & drop, ↑ ↓, ocultar (ojo), duplicar, eliminar, «+ Agregar sección» |
 | Agregar / quitar / reordenar productos | En el formulario («+ Agregar producto», «Quitar este producto») o con la insignia ✕ que aparece sobre el producto en la vista previa |
 | Clasificar productos | En la ventanita de cada producto: **«Para qué mascotas»** (Perros / Gatos, con botón «Todos») y **«Categorías de producto»** (Alimentos, Descanso, Transporte, Accesorios, Juguetes… con botón «Ninguna»). Ambas se eligen con casillas y un producto puede llevar varias |
@@ -348,7 +349,7 @@ Los **datos** (`data/pagina.json`, `data/sitio.json`) no tienen este problema: `
 
 ## Seguridad
 
-Auditoría completa (24/10/2026 y 3/11/2026) con pruebas automáticas de vulnerabilidades — ver el informe detallado en **`guias/INFORME-SEGURIDAD.md`**. Síntesis:
+Auditoría completa (24/10/2026, 3/11/2026 y **8/11/2026** con pruebas de exploit simulado) — ver el informe detallado en **`guias/INFORME-SEGURIDAD.md`**. Síntesis:
 
 - **XSS por contenido**: todos los textos del JSON se escapan al renderizar; los enlaces editables se sanitizan (`hrefSeguro`: solo `#`, rutas internas, `https:`, `mailto:`, `tel:` — `javascript:` queda en `#`). Probado con batería de 25+ payloads en todos los campos: 0 ejecuciones.
 - **CSP activa** en sitio y panel (meta tag): bloquea scripts inline/externos no autorizados manteniendo todo funcional (verificado: 0 violaciones en consola).
@@ -371,6 +372,9 @@ Estado honesto de lo que está funcionando y lo que no. El detalle completo, con
 | **Borrador viejo en el navegador** | El panel recuperaba el borrador local (`localStorage`) **tal cual**, sin adaptarlo al formato actual: con un borrador anterior a las categorías, **no aparecía el bloque «Categorías de producto»** (y publicar desde ahí pisaba el catálogo nuevo sin aviso) | Alto | **Resuelto el 2026-11-08**: `migrarDatos()` adapta borradores, versiones y copias al abrir el panel; queda marcado como borrador para revisar antes de publicar |
 | **Login del Worker en blanco** | Si las credenciales no coinciden, el Worker responde `401` con cuerpo vacío → **página en blanco** sin mensaje (en el dominio publicado) | Medio | **Abierto**: el Worker está fuera de este repo. El modo local lo rodea para probar; convendría que el Worker devuelva el formulario con mensaje de error |
 | **Caché de Cloudflare** | Los `.js`/`.css` se cachean 4 h: con código viejo y datos nuevos la web «no cambia» | Medio | **Mitigado** con `?v=<hash>` (ver la sección «Versionado de assets») |
+| **CSRF local (resuelto)** | Los endpoints `/__local/*` del servidor local aceptaban `POST` sin validar origen ni tipo: cualquier web visitada podía escribir archivos mientras corre `preview.cmd` (y subir SVG con script) | Medio | **Resuelto el 2026-11-08**: se exige origen local + `Content-Type: application/json`, y `svg` ya no se sube. Detalle en `guias/INFORME-SEGURIDAD.md` |
+| **XSS vía `empresaUrl` (resuelto)** | La huella legal del pie usaba solo escape de comillas, sin validar el esquema: un `javascript:…` en ese dato ejecutaba script al hacer clic | Medio | **Resuelto el 2026-11-08**: ahora usa `hrefSeguro()` como el resto de las URL |
+| **Worker `401` en blanco** | Si las credenciales no coinciden, el Worker responde `401` vacío → página en blanco sin mensaje (login publicado) | Bajo | **Abierto**: el Worker está fuera de este repo. El modo local lo rodea para probar; convendría que devuelva el formulario con mensaje de error |
 | **Caché del navegador** | El HTML se cachea 10 min | Bajo | Normal: un **Ctrl+F5** alcanza |
 | **Sin analítica de visitas** | Cloudflare Web Analytics está apagado a propósito (su beacon no carga por la CSP y el aviso de privacidad declara que no hay cookies ni analítica) | Bajo | Decisión coherente con el aviso. Si se quiere medir tráfico, hay que elegir entre un medidor sin cookies o actualizar aviso + CSP |
 | **Resolución de `assets/img/local.jpg`** (449×660) | Puede verse baja como fondo | Bajo | Pendiente del próximo pase de fotos |
@@ -418,7 +422,9 @@ Sitio publicado en GitHub Pages con el contenido en JSON. **Todo el rediseño de
 | **Huella legal como enlace 2026-11-07** | El copyright del pie es un enlace a `https://estalingradocorp.com.ar/` (pestaña nueva, `rel="noopener"`), con campo editable «Enlace de la empresa (pie)» en el panel | Publicado (`60b6302`) |
 | **Documentación 2026-11-07** | `guias/ESTADO-ACTUAL.md` (informe de estado para revisión del CEO: cómo está hecho, cómo funciona, verificaciones, problemas y pendientes) + actualización de README, bitácora y guía de entrega | Publicado |
 | **Migración a Estalingradocorp 2026-11-07** | Repo espejo en `Estalingradocorp/laboutiquecatydog.github.io`, dominio en Cloudflare `nicotips27`, panel con login de usuario/contraseña (token oculto en el Worker) | Publicado |
-| **Acceso visible + modo local 2026-11-08** | Ícono de usuario (fuera el truco de 3 clics), modo local sin login (Guardar en esta carpeta, galería y subida locales), migración automática de borradores viejos, píldoras de categorías, selección múltiple de imágenes, redes en Textos, paginación anclada, tipografía de precios, aviso auto-ocultable | En esta publicación |
+| **Acceso visible + modo local 2026-11-08** | Ícono de usuario (fuera el truco de 3 clics), modo local sin login (Guardar en esta carpeta, galería y subida locales), migración automática de borradores viejos, píldoras de categorías, selección múltiple de imágenes, redes en Textos, paginación anclada, tipografía de precios, aviso auto-ocultable | Publicado |
+| **Editor de recorte + pulido 2026-11-08** | Recorte con zoom 25–400 % y proporciones antes de subir (también desde la galería, una por una), lápiz para editar la foto existente, orden fijo de campos en la ventana de producto, «Destacado» alineado, zoom de tarjetas contenido en el marco, buscador sin doble «✕», botones «Consultar disponibilidad» minimalistas | En esta publicación |
+| **Auditoría de seguridad 2026-11-08** | CSRF local cerrado (origen + Content-Type + sin `svg`), XSS vía `empresaUrl` cerrado; informe completo en `guias/INFORME-SEGURIDAD.md` | En esta publicación |
 
 ---
 

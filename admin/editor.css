@@ -766,6 +766,37 @@ a { color: var(--tinta); }
   padding: 4px 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .media-subir { padding-top: 2px; }
+
+/* Editor de recorte: vista previa con encuadre y zoom */
+.media-recorte { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+.media-recorte[hidden] { display: none; }
+.recorte-ratios { display: flex; gap: 6px; flex-wrap: wrap; }
+.recorte-ratio {
+  padding: 5px 12px; border-radius: 999px;
+  border: 1px solid var(--gris-200); background: var(--blanco);
+  font-family: var(--fuente); font-size: 0.8rem; cursor: pointer; color: var(--gris-600);
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.recorte-ratio.is-activo { border-color: var(--tinta); color: var(--tinta); background: var(--gris-100); font-weight: 600; }
+.recorte-ratio:hover { border-color: var(--gris-300); }
+.recorte-viewport {
+  position: relative; width: 100%; max-width: 520px;
+  aspect-ratio: 4 / 3; max-height: 46vh;
+  margin: 0 auto; overflow: hidden;
+  border-radius: 12px; border: 1px solid var(--gris-200);
+  /* Fondo blanco: es lo que va a quedar alrededor de la foto en el
+     JPG final, así se ve tal cual antes de guardar. */
+  background: #fff; touch-action: none; cursor: grab;
+}
+.recorte-viewport:active { cursor: grabbing; }
+.recorte-viewport canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.recorte-paso { margin: 0; text-align: center; font-size: 0.8rem; color: var(--gris-600); font-weight: 600; }
+.recorte-paso[hidden] { display: none; }
+.recorte-controles { display: flex; align-items: center; gap: 10px; max-width: 520px; margin: 0 auto; width: 100%; }
+.recorte-zoom-label { font-size: 0.8rem; color: var(--gris-600); font-weight: 600; }
+.recorte-controles input[type="range"] { flex: 1; accent-color: var(--acento); }
+.recorte-ayuda { font-size: 0.75rem; color: var(--gris-600); white-space: nowrap; }
+.recorte-acciones { display: flex; justify-content: flex-end; gap: 8px; max-width: 520px; margin: 0 auto; width: 100%; }
 .media-drop {
   display: flex; align-items: center; justify-content: center; gap: 8px;
   border: 2px dashed var(--gris-300); border-radius: 12px;
@@ -1001,11 +1032,14 @@ input[type="search"]::-ms-clear { display: none; }
 .prod-tile:active { transform: translateY(-1px); }
 .prod-tile-thumb {
   position: relative;
-  width: 52px; height: 52px; border-radius: 12px; overflow: hidden;
+  width: 68px; height: 84px; border-radius: 12px; overflow: hidden;
   background: var(--gris-100); border: 1px solid var(--gris-200);
   display: flex; align-items: center; justify-content: center;
 }
-.prod-tile-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* "contain" a propósito: los productos altos (bolsas en vertical)
+   se veían cortados con "cover". La foto completa entra, con el
+   fondo neutro de la miniatura. */
+.prod-tile-thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .prod-tile-nombre {
   font-size: 0.78rem; font-weight: 600; line-height: 1.25; color: var(--tinta);
   max-width: 100%;

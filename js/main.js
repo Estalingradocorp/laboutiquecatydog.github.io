@@ -497,8 +497,11 @@
   var POR_PAGINA = 6;
 
   function repaginarTodo() {
+    /* Al filtrar/buscar solo se repinta: sin tocar el scroll ni el
+       foco (si se restaurara en cada tecla, la página saltaría
+       mientras se escribe en el buscador). */
     Array.prototype.forEach.call(document.querySelectorAll("[data-product-pagination]"), function (z) {
-      if (z.__bqIr) { z.__bqIr(1); }
+      if (z.__bqIr) { z.__bqIr(1, true); }
     });
   }
 
@@ -591,9 +594,19 @@
         zona.appendChild(info);
       }
 
-      function ir(n) {
+      function ir(n, silencioso) {
         var total = totalPaginas();
         pagina = Math.min(Math.max(1, n), total);
+        if (silencioso) {
+          /* Sin tocar scroll ni foco, pero sin "ancla de scroll":
+             si no, el navegador desplaza la página al filtrar. */
+          var raiz0 = document.documentElement;
+          var anchor0 = raiz0.style.overflowAnchor;
+          raiz0.style.overflowAnchor = "none";
+          pintar();
+          raiz0.style.overflowAnchor = anchor0;
+          return;
+        }
         /* pintar() destruye los botones (innerHTML) y con ellos el
            foco; además, si la página nueva tiene menos filas, el
            catálogo se achica y todo lo de abajo (esta paginación)

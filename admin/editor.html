@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="editor.css?v=e88f1904" />
+  <link rel="stylesheet" href="editor.css?v=c9b27be5" />
   <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
@@ -183,6 +183,28 @@
         <!-- El input no se oculta con "hidden": queda invisible pero
              enfocable, para que se pueda usar con el teclado. -->
         <input id="media-archivo" class="visualmente-oculto" type="file" accept="image/jpeg,image/png,image/webp" />
+        <!-- Editor de recorte: se encuadra y se elige el zoom antes de subir -->
+        <div id="media-recorte" class="media-recorte" hidden>
+          <div class="recorte-ratios" role="group" aria-label="Proporción del recorte">
+            <button type="button" class="recorte-ratio" data-ratio="4:3">4:3</button>
+            <button type="button" class="recorte-ratio" data-ratio="1:1">1:1</button>
+            <button type="button" class="recorte-ratio" data-ratio="3:4">3:4</button>
+            <button type="button" class="recorte-ratio" data-ratio="libre">Libre</button>
+          </div>
+          <div id="media-recorte-viewport" class="recorte-viewport">
+            <canvas id="media-recorte-canvas"></canvas>
+          </div>
+          <p id="media-recorte-paso" class="recorte-paso" hidden></p>
+          <div class="recorte-controles">
+            <label class="recorte-zoom-label" for="media-recorte-zoom">Zoom</label>
+            <input id="media-recorte-zoom" type="range" min="25" max="400" value="100" />
+            <span class="recorte-ayuda">Arrastrá para encuadrar</span>
+          </div>
+          <div class="recorte-acciones">
+            <button id="media-recorte-cancelar" class="btn-borde" type="button">Cancelar</button>
+            <button id="media-recorte-confirmar" class="btn-rojo" type="button">Recortar y subir</button>
+          </div>
+        </div>
         <div id="media-prevista" class="media-prevista" hidden>
           <img id="media-prevista-img" alt="Vista previa de la imagen elegida" />
           <p id="media-prevista-info" class="campo-pista"></p>
@@ -296,9 +318,9 @@
   <!-- ============ ZONA DE AVISOS (TOAST) ============ -->
   <div id="toasts" class="toasts" aria-live="polite"></div>
 
-  <script src="editor-form.js?v=e88f1904"></script>
-  <script src="editor-inline.js?v=e88f1904"></script>
-  <script src="editor-media.js?v=e88f1904"></script>
-  <script src="editor.js?v=e88f1904"></script>
+  <script src="editor-form.js?v=c9b27be5"></script>
+  <script src="editor-inline.js?v=c9b27be5"></script>
+  <script src="editor-media.js?v=c9b27be5"></script>
+  <script src="editor.js?v=c9b27be5"></script>
 </body>
 </html>

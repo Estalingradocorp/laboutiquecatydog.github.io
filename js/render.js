@@ -162,7 +162,9 @@
     /* La huella legal es un enlace a la empresa cuando tiene URL */
     var copyright = e(f.copyright);
     if (set(f.empresaUrl)) {
-      copyright = '<a class="enlace-copyright" href="' + a(f.empresaUrl) + '" target="_blank" rel="noopener">' + copyright + "</a>";
+      /* hrefSeguro (no solo escape): sin esto, un valor
+         "javascript:…" en el dato ejecutaba script al hacer clic. */
+      copyright = '<a class="enlace-copyright" href="' + hrefSeguro(f.empresaUrl) + '" target="_blank" rel="noopener">' + copyright + "</a>";
     }
     var secciones = n.map(function (item) {
       return "<li><a href=\"" + hrefSeguro(item.ancla) + '">' + e(item.texto) + "</a></li>";
@@ -283,10 +285,14 @@
     var cards = (b.tarjetas || []).map(function (c, i) {
       return (
         '<a class="category-card" href="' + hrefSeguro(c.enlace) + '" data-reveal style="--reveal-delay:' + (i * 90) + 'ms">' +
+        /* El marco recorta el zoom: la foto nunca se derrama sobre el
+           texto de abajo al pasar el mouse. */
+        '<span class="category-frame">' +
         '<img class="category-media" src="' + a(c.imagen) + '" alt="' + a(c.alt) + '"' +
         (c.ancho ? ' width="' + c.ancho + '"' : "") +
         (c.alto ? ' height="' + c.alto + '"' : "") +
         ' loading="lazy" decoding="async" />' +
+        "</span>" +
         '<span class="category-body">' +
         "<h3>" + e(c.titulo) + "</h3>" +
         "<p>" + e(c.texto) + "</p>" +

@@ -55,20 +55,20 @@
       "ctaTexto": "Ver productos",
       "tarjetas": [
         {
-          "imagen": "assets/img/seccion-perros.jpg",
+          "imagen": "assets/img/5154762845097495701-56049f.jpg",
           "alt": "Perros",
           "ancho": 1280,
-          "alto": 720,
+          "alto": 959,
           "titulo": "Perros",
           "texto": "Alimento, accesorios, higiene y todo para el cuidado diario de tu perro.",
           "enlace": "#productos",
           "id": "perros"
         },
         {
-          "imagen": "assets/img/seccion-gatos.jpg",
+          "imagen": "assets/img/5152511045283810903-d80f7e-7a2915.jpg",
           "alt": "Gatos",
           "ancho": 1280,
-          "alto": 698,
+          "alto": 959,
           "titulo": "Gatos",
           "texto": "Alimento, accesorios y cuidado pensado para el bienestar de tu gato.",
           "enlace": "#productos",
@@ -272,6 +272,25 @@
               "alt": "",
               "ancho": 860,
               "alto": 571
+            }
+          ]
+        },
+        {
+          "titulo": "Alimento Pedigree Cachorro Sano Crecimiento",
+          "descripcion": "Bolsa de alimento de 24Kg \nPara cachorros de 3Kd\n",
+          "mascotas": [],
+          "categorias": [
+            "alimentos"
+          ],
+          "destacado": false,
+          "precio": "",
+          "mensajeWhatsApp": "",
+          "fotos": [
+            {
+              "foto": "assets/img/d-nq-np-2x-946176-mlu118221925922-102026-620f19.jpg",
+              "alt": "",
+              "ancho": 827,
+              "alto": 619
             }
           ]
         }
