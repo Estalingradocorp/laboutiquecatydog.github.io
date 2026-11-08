@@ -650,13 +650,17 @@
         punteroHistorial = -1;
         instantaneaPublicada = instantaneaActual();
 
-        /* Si quedó un borrador de una sesión anterior, se recupera. */
+        /* Borrador de una sesión anterior: NO se aplica en silencio.
+           Si difiere de lo publicado, se pregunta antes: así un
+           borrador viejo nunca pisa el catálogo nuevo sin aviso. */
+        var borradorPendiente = null;
+        var borradorSitioPendiente = null;
         var crudo = localStorage.getItem(CLAVE_BORRADOR);
         if (crudo) {
           try {
             var guardado = JSON.parse(crudo);
             if (guardado && Array.isArray(guardado.secciones)) {
-              datos = guardado;
+              borradorPendiente = migrarDatos(guardado);
             }
           } catch (e2) { localStorage.removeItem(CLAVE_BORRADOR); }
         }
@@ -665,20 +669,57 @@
           try {
             var guardadoSitio = JSON.parse(crudoSitio);
             if (guardadoSitio && typeof guardadoSitio === "object") {
-              datosSitio = guardadoSitio;
+              borradorSitioPendiente = guardadoSitio;
             }
           } catch (e2) { localStorage.removeItem(CLAVE_BORRADOR_SITIO); }
         }
 
-        /* Borrador viejo (anterior a las categorías): se migra para
-           que el bloque y las casillas aparezcan; queda como borrador
-           para revisarlo antes de publicar. */
-        datos = migrarDatos(datos);
+        var difierePagina = borradorPendiente !== null &&
+          JSON.stringify(borradorPendiente) !== JSON.stringify(datos);
+        var difiereSitio = borradorSitioPendiente !== null &&
+          JSON.stringify(borradorSitioPendiente) !== JSON.stringify(datosSitio);
+        var hayBorradorDistinto = difierePagina || difiereSitio;
+
+        var aplicarBorrador = function () {
+          if (borradorPendiente) { datos = borradorPendiente; }
+          if (borradorSitioPendiente) { datosSitio = borradorSitioPendiente; }
+        };
 
         /* El chip refleja la diferencia real con lo publicado */
         compararConPublicado();
-        if (borrador || borradorSitio) {
-          toast("Se restauró un borrador pendiente de publicar.", "ok");
+
+        if (hayBorradorDistinto) {
+          /* Se entra con lo PUBLICADO y se pregunta: nunca se pisa en silencio */
+          mostrarVista("vista-editor");
+          /* Cancelar = descartar el borrador (se borra del navegador) */
+          var bNo = $("#modal-confirmar-no");
+          if (bNo) {
+            bNo.addEventListener("click", function descartar() {
+              bNo.removeEventListener("click", descartar);
+              localStorage.removeItem(CLAVE_BORRADOR);
+              localStorage.removeItem(CLAVE_BORRADOR_SITIO);
+              toast("Borrador descartado: se usa lo publicado.", "ok");
+            }, { once: true });
+          }
+          pedirConfirmacion(
+            "Hay un borrador sin publicar de una sesión anterior y difiere de lo publicado. " +
+            "Aceptar: cargar tu borrador. Cancelar: descartar el borrador y usar lo publicado.",
+            function () {
+              aplicarBorrador();
+              compararConPublicado();
+              capturarHistorial(true);
+              actualizarEstadoCambios();
+              armarPlantillas();
+              renderLista();
+              actualizarModoPanel();
+              programarRerender();
+              toast("Se cargó tu borrador pendiente de publicar.", "ok");
+            }
+          );
+        } else if (borradorPendiente || borradorSitioPendiente) {
+          /* Borrador idéntico a lo publicado: no hace ruido */
+          localStorage.removeItem(CLAVE_BORRADOR);
+          localStorage.removeItem(CLAVE_BORRADOR_SITIO);
         }
 
         capturarHistorial(true);
