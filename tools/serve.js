@@ -46,6 +46,86 @@ function send(res, status, body, type) {
   res.end(body);
 }
 
+/* Guardado local (solo servidor de previsualización): el panel en
+   modo local puede escribir data/*.json en esta carpeta para ver los
+   cambios en la web local. Solo estos dos archivos, nada más. */
+const ARCHIVOS_LOCALES = ["data/pagina.json", "data/sitio.json"];
+
+function responderGuardarLocal(req, res) {
+  const chunks = [];
+  let total = 0;
+  req.on("data", (chunk) => {
+    total += chunk.length;
+    if (total > 5 * 1024 * 1024) { req.destroy(); return; }
+    chunks.push(chunk);
+  });
+  req.on("end", () => {
+    let datos;
+    try { datos = JSON.parse(Buffer.concat(chunks).toString("utf8")); }
+    catch (e) { return send(res, 400, "Solicitud inválida"); }
+    if (!datos || ARCHIVOS_LOCALES.indexOf(datos.archivo) === -1 ||
+        typeof datos.contenido !== "string") {
+      return send(res, 400, "Archivo no permitido");
+    }
+    try { JSON.parse(datos.contenido); }
+    catch (e) { return send(res, 400, "Contenido no es JSON válido"); }
+    const destino = path.join(root, datos.archivo);
+    if (!destino.startsWith(root + path.sep)) { return send(res, 403, "Prohibido"); }
+    fs.writeFileSync(destino, datos.contenido, "utf8");
+    send(res, 200, JSON.stringify({ ok: true, archivo: datos.archivo }), "application/json; charset=utf-8");
+  });
+}
+
+/* Imágenes en modo local: listar assets/img/ y subir archivos ahí
+   (para probar la carga de imágenes sin pasar por GitHub). */
+function responderImagenesLocal(req, res) {
+  const carpeta = path.join(root, "assets", "img");
+  fs.readdir(carpeta, (err, nombres) => {
+    if (err) return send(res, 500, "No se pudo leer la carpeta de imágenes");
+    const archivos = nombres
+      .filter((n) => /\.(jpg|jpeg|png|webp|svg)$/i.test(n))
+      .map((n) => {
+        const ruta = "assets/img/" + n;
+        let size = 0;
+        try { size = fs.statSync(path.join(root, ruta)).size; } catch (e) {}
+        return { name: n, path: ruta, size };
+      });
+    send(res, 200, JSON.stringify(archivos), "application/json; charset=utf-8");
+  });
+}
+
+function responderSubirImagenLocal(req, res) {
+  const chunks = [];
+  let total = 0;
+  req.on("data", (chunk) => {
+    total += chunk.length;
+    if (total > 12 * 1024 * 1024) { req.destroy(); return; }
+    chunks.push(chunk);
+  });
+  req.on("end", () => {
+    let datos;
+    try { datos = JSON.parse(Buffer.concat(chunks).toString("utf8")); }
+    catch (e) { return send(res, 400, "Solicitud inválida"); }
+    if (!datos || typeof datos.ruta !== "string" || typeof datos.b64 !== "string") {
+      return send(res, 400, "Datos incompletos");
+    }
+    if (datos.ruta.indexOf("..") !== -1 || datos.ruta.indexOf("assets/img/") !== 0 ||
+        !/\.(jpg|jpeg|png|webp|svg)$/i.test(datos.ruta)) {
+      return send(res, 400, "Ruta no permitida");
+    }
+    const destino = path.join(root, datos.ruta);
+    if (!destino.startsWith(path.join(root, "assets", "img") + path.sep)) {
+      return send(res, 403, "Prohibido");
+    }
+    try {
+      fs.writeFileSync(destino, Buffer.from(datos.b64, "base64"));
+    } catch (e) {
+      return send(res, 500, "No se pudo guardar la imagen");
+    }
+    send(res, 200, JSON.stringify({ ok: true, ruta: datos.ruta }), "application/json; charset=utf-8");
+  });
+}
+
 const server = http.createServer((req, res) => {
   let urlPath;
   try {
@@ -54,6 +134,16 @@ const server = http.createServer((req, res) => {
     return send(res, 400, "Solicitud inválida");
   }
   if (urlPath === "/") urlPath = "/index.html";
+
+  if (req.method === "POST" && urlPath === "/__local/guardar") {
+    return responderGuardarLocal(req, res);
+  }
+  if (req.method === "GET" && urlPath === "/__local/imagenes") {
+    return responderImagenesLocal(req, res);
+  }
+  if (req.method === "POST" && urlPath === "/__local/subir-imagen") {
+    return responderSubirImagenLocal(req, res);
+  }
 
   const filePath = path.join(root, urlPath);
   /* Evita salir de la carpeta raíz (path traversal). */

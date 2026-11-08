@@ -5,7 +5,7 @@ Sitio web de una sola página (landing) para **La Boutique Cat & Dog**, tienda d
 El contenido (textos, imágenes, enlaces y secciones) **no está en el HTML**: vive en archivos JSON dentro de `data/` y se renderiza en el navegador con JavaScript. Sobre esa base hay un **panel de administración visual tipo constructor** en `/admin/editor.html` para que el cliente edite todo con su navegador: textos sobre la propia vista previa, imágenes, productos, orden de secciones y datos del local.
 
 **Web:** <https://laboutiquecatydog.com.ar/>
-**Panel visual:** `https://laboutiquecatydog.com.ar/admin/editor.html` *(requiere login con GitHub; ver [Panel visual de administración](#panel-visual-de-administración))*
+**Panel visual:** `https://laboutiquecatydog.com.ar/admin/editor.html` *(requiere login con usuario y contraseña; ver [Panel visual de administración](#panel-visual-de-administración))*
 **Panel avanzado (Sveltia):** <https://laboutiquecatydog.com.ar/admin/> *(respaldo para casos avanzados)*
 
 ---
@@ -43,7 +43,7 @@ Una sola página con navegación por anclas. Los bloques y su orden se definen e
 | Header | `.site-header` | Logo, menú, botón de WhatsApp |
 | Footer | `.site-footer` | Marca, secciones, datos de contacto, redes y año dinámico |
 
-**Funcionalidades:** menú móvil con overlay y scroll-spy, carruseles con teclado/touch/autoplay (pausa al enfocar o pasar el mouse), animaciones de aparición al hacer scroll, barra de progreso de scroll, título de portada con efecto de escritura **y revelado del resto del contenido en paralelo** (todo visible en ~0,5 s, título completo en ~1,6 s), enlaces de WhatsApp/Google Maps generados desde los datos, **catálogo con filtros por mascota y por categoría de producto, buscador, contador, estado vacío, precio formateado y productos destacados** con repaginación, secciones ocultables desde el panel (`oculto`), SEO dinámico desde `sitio.json` (título, descripción, Open Graph y JSON-LD `PetStore`), y **acceso discreto al panel: tres clics seguidos en el logo** (el login con GitHub sigue siendo obligatorio; desactivado dentro de la vista previa del editor).
+**Funcionalidades:** menú móvil con overlay y scroll-spy, carruseles con teclado/touch/autoplay (pausa al enfocar o pasar el mouse), animaciones de aparición al hacer scroll, barra de progreso de scroll, título de portada con efecto de escritura **y revelado del resto del contenido en paralelo** (todo visible en ~0,5 s, título completo en ~1,6 s), enlaces de WhatsApp/Google Maps generados desde los datos, **catálogo con filtros por mascota y por categoría de producto, buscador, contador, estado vacío, precio formateado y productos destacados** con repaginación anclada (sin salto de scroll al cambiar de página), secciones ocultables desde el panel (`oculto`), SEO dinámico desde `sitio.json` (título, descripción, Open Graph y JSON-LD `PetStore`), y **acceso visible al panel: ícono de usuario en la esquina superior derecha** (el login sigue siendo obligatorio; el ícono no se dibuja dentro de la vista previa del editor).
 
 ---
 
@@ -196,14 +196,15 @@ Es una lista `secciones`. **El orden de la lista es el orden en la web.** Cada s
 |---|---|
 | Editar cualquier texto | Clic sobre el texto en la vista previa (títulos, párrafos, botones, menú, pie, viñetas, productos) y escribir encima. También en el modo «Textos» con formularios |
 | Cambiar una imagen | Clic sobre la foto en la vista previa → galería del repo o subir una nueva |
-| Subir imágenes | Pestaña «Subir desde la PC»: canvas la optimiza (JPEG 82 %, máx. 1600 px + variante `-900` cuando el campo la usa; el logo mantiene PNG). Va al repo en **un solo commit por imagen** (Git Data API) |
+| Subir imágenes | Pestaña «Subir desde la PC»: canvas la optimiza (JPEG 82 %, máx. 1600 px + variante `-900` cuando el campo la usa; el logo mantiene PNG). Va al repo en **un solo commit por imagen** (Git Data API). En modo local se escribe en `assets/img/` de la carpeta |
+| Elegir varias imágenes de una vez | En la galería se tocan las fotos (✓) y se confirma con el contador + botón junto a «Subir desde la PC»: la primera va al campo y **el resto se agrega** como fotos/slides nuevas en la misma lista |
 | Agregar / quitar / reordenar secciones | Lista de la izquierda: drag & drop, ↑ ↓, ocultar (ojo), duplicar, eliminar, «+ Agregar sección» |
 | Agregar / quitar / reordenar productos | En el formulario («+ Agregar producto», «Quitar este producto») o con la insignia ✕ que aparece sobre el producto en la vista previa |
 | Clasificar productos | En la ventanita de cada producto: **«Para qué mascotas»** (Perros / Gatos, con botón «Todos») y **«Categorías de producto»** (Alimentos, Descanso, Transporte, Accesorios, Juguetes… con botón «Ninguna»). Ambas se eligen con casillas y un producto puede llevar varias |
-| Administrar las categorías del catálogo | En la sección **Productos** está el bloque **«Categorías de producto»**: se agregan («+ Agregar categoría»), se renombran (editando el texto de la fila) y se borran (✕). Al borrar una categoría, los productos que la usaban la pierden; al renombrarla no se rompe nada |
-| Destacar productos | Interruptor **«Destacado (se muestra arriba de todo)»** por producto: los destacados salen primero en la grilla, con aro de color y etiqueta «Destacado» |
-| Fotos de productos y carrusel | Agregar, quitar, reordenar y reemplazar fotos por producto y por slide del carrusel |
-| Datos del local | Pestaña «Datos del local»: WhatsApp, dirección, horarios, redes, menú, pie (edita `data/sitio.json`) |
+| Administrar las categorías del catálogo | En la sección **Productos** (modo «Textos») está el bloque **«Categorías de producto»** como píldoras —las mismas que ve la gente debajo del buscador—: «+ Nueva categoría», renombrar escribiendo en la píldora, reordenar con ↑ ↓ que aparecen al pasar el mouse, borrar con ✕. Al borrar una categoría, los productos que la usaban la pierden; al renombrarla no se rompe nada |
+| Destacar productos | Interruptor **«Destacado (se muestra arriba de todo)»** por producto (fila completa, alineado): los destacados salen primero en la grilla, con aro de color y etiqueta «Destacado» |
+| Fotos de productos y carrusel | Agregar, quitar, reordenar y reemplazar fotos por producto y por slide del carrusel. En la ventana de producto, los campos siempre van en el mismo orden (categorías y destacado antes que las fotos) |
+| Datos del local | Pestaña «Datos del local»: WhatsApp, dirección, horarios, redes, menú, pie (edita `data/sitio.json`). Las **redes sociales también se editan en el modo «Textos»** de la sección Contacto, sin cambiar de pestaña |
 | Volver atrás | **Deshacer/rehacer** tipo Word: flechas ↶ ↷ en la barra superior, `Ctrl+Z` / `Ctrl+Y` (también con el foco en la vista previa). Historial de hasta 60 pasos |
 | Recuperar algo ya publicado | **Historial de versiones** (ícono de reloj): lista las últimas versiones publicadas de cada archivo con fecha y mensaje; «Restaurar» carga la versión **como borrador** para revisarla en la vista previa — nada se publica solo y la restauración es deshacible |
 | Copias de seguridad | Ícono de copias: copias locales del contenido en el navegador (hasta 15). Se guarda una **automática antes de cada publicación**; también manuales, **descargables a un archivo** y se pueden **subir desde archivo**. Restaurar carga como borrador |
@@ -212,7 +213,7 @@ Es una lista `secciones`. **El orden de la lista es el orden en la web.** Cada s
 | Publicar | Botón «Publicar cambios» → 1 commit por archivo que haya cambiado (portada y/o datos del local). En ~1 min está en la web |
 | Ayuda integrada | Botón **«?»** en la barra superior: guía corta y clara de todo el panel (textos, fotos, productos, publicar, deshacer, sesión) |
 
-**Modelo de datos del editor:** los cambios viven como **borrador** en el navegador (borrador automático en `localStorage`, se recupera al volver a entrar) hasta «Publicar cambios» o «Descartar». La **única excepción** es la subida de imágenes nuevas, que se commitea en el momento (una imagen en borrador no tiene sentido). Si el archivo cambió en GitHub mientras editabas (p. ej. desde Sveltia), al publicar se detecta el conflicto y se ofrece recargar o quedarse con el borrador.
+**Modelo de datos del editor:** los cambios viven como **borrador** en el navegador (borrador automático en `localStorage`, se recupera al volver a entrar) hasta «Publicar cambios» o «Descartar». La **única excepción** es la subida de imágenes nuevas, que se commitea en el momento (una imagen en borrador no tiene sentido). Si el archivo cambió en GitHub mientras editabas (p. ej. desde Sveltia), al publicar se detecta el conflicto y se ofrece recargar o quedarse con el borrador. **Los borradores viejos se migran solos al abrir el panel** (`migrarDatos()`): un borrador anterior a las categorías recupera el bloque y las casillas en vez de ocultarlas, y queda marcado como borrador para revisarlo antes de publicar. En **modo local**, «Guardar en esta carpeta» escribe `data/*.json` en disco y la web local refleja los cambios al recargar.
 
 ### El catálogo: categorías, filtros y destacados
 
@@ -245,19 +246,25 @@ La sección **Productos** de la web es un catálogo con **dos grupos de filtros*
 | `admin/editor-form.js` | Constructor de formularios a partir del JSON (reglas por campo, listas, items) |
 | `admin/editor-inline.js` | Edición in situ en la vista previa: marca los textos editables, contenteditable, reconstruye `**negritas**` del hero, controla clic/foco/Escape |
 | `admin/editor-media.js` | Selector de imágenes: galería (API) + subida optimizada con canvas |
-| `tools/worker-editor.js` | Worker de Cloudflare **extendido** para el login del editor (el original de Sveltia sigue intacto para `/admin/`) |
+| `tools/worker-editor.js` | Worker de Cloudflare **extendido** para el login del editor (el original de Sveltia sigue intacto para `/admin/`). El Worker desplegado (`nicotips27`) acepta login con usuario y contraseña (`ADMIN_USER`/`ADMIN_PASS` solo en Cloudflare) y devuelve el token de GitHub guardado como secreto |
 | Cloudflare Worker `sveltia-cms-auth` | Solo gestiona el login con GitHub (OAuth). Modo `client=editor` redirige de vuelta al panel con el token en el fragmento (`#`), que nunca viaja a un servidor |
-| OAuth App de GitHub | Autoriza el login (Client ID + Secret) |
+| OAuth App de GitHub / secreto `GITHUB_TOKEN` | El token de GitHub queda en el Worker (el cliente no necesita cuenta de GitHub) |
 
 ### Flujo de login (panel visual)
 
-1. En `/admin/editor.html`, clic en **«Iniciar sesión con GitHub»**.
-2. Se navega (misma pestaña) al Worker con `provider=github`, `site_id=<dominio>`, `client=editor` y `redirect=<origen>`.
-3. El Worker valida el dominio contra `ALLOWED_DOMAINS`, guarda una cookie de retorno y redirige a GitHub.
-4. Al autorizar, GitHub vuelve al `/callback` del Worker, que canjea el código por un token y **redirige al editor** con `#access_token=…`.
+1. En `/admin/editor.html`, clic en **«Entrar con usuario y contraseña»**.
+2. Se navega (misma pestaña) al Worker con `provider=password`, `site_id=<dominio>`, `client=editor` y `redirect=<URL del panel>`.
+3. El Worker valida el dominio contra `ALLOWED_DOMAINS` y compara usuario/contraseña con los secretos `ADMIN_USER`/`ADMIN_PASS` (comparación de tiempo constante).
+4. Si coinciden, el Worker entrega el token de GitHub que guarda como secreto `GITHUB_TOKEN` y **redirige al editor** con `#access_token=…`.
 5. El editor guarda el token en `sessionStorage` (vive en esa pestaña; «Salir» lo borra) y opera contra la API de GitHub.
 
 También hay un **respaldo con token personal** (avanzado) para el caso en que el login fallé.
+
+> ⚠️ Si las credenciales no coinciden, el Worker responde `401` con cuerpo vacío → **página en blanco** sin mensaje. Revisar mayúsculas y espacios. (El modo local, abajo, no necesita este login.)
+
+### Modo local (sin login, sin GitHub)
+
+En `localhost` / `127.0.0.1` el panel entra directo en **modo local**: lee `data/*.json` de la carpeta, muestra «Modo local (sin publicar)» y no usa el Worker ni GitHub. El botón pasa a **«Guardar en esta carpeta»** (escribe los JSON vía `POST /__local/guardar` del servidor local, solo esos dos archivos) y **la galería/subida de imágenes también es local** (`GET /__local/imagenes`, `POST /__local/subir-imagen` → `assets/img/`). La web local refleja todo al recargar. Publicar en internet sigue haciéndose desde el dominio publicado.
 
 ### Variables de entorno del Worker (Cloudflare → Production)
 
@@ -361,7 +368,8 @@ Estado honesto de lo que está funcionando y lo que no. El detalle completo, con
 
 | Problema | Qué pasa | Impacto | Estado / qué hacer |
 |---|---|---|---|
-| **Borrador viejo en el navegador** | El panel recupera el borrador local (`localStorage`) **tal cual**, sin adaptarlo al formato actual. Si el navegador tenía un borrador anterior al cambio de categorías, el panel **no muestra el bloque «Categorías de producto»** | **Alto**: si en ese estado se pulsa «Publicar cambios», se pisa el catálogo nuevo (la web vuelve al modelo viejo). El chequeo de conflicto no avisa | **Abierto.** Mitigación: botón **«Descartar»** (borra el borrador y recarga lo publicado) → el bloque aparece. Arreglo de fondo pendiente: migrar el borrador al abrir el panel. **Mientras tanto, no publicar desde un panel con datos viejos** |
+| **Borrador viejo en el navegador** | El panel recuperaba el borrador local (`localStorage`) **tal cual**, sin adaptarlo al formato actual: con un borrador anterior a las categorías, **no aparecía el bloque «Categorías de producto»** (y publicar desde ahí pisaba el catálogo nuevo sin aviso) | Alto | **Resuelto el 2026-11-08**: `migrarDatos()` adapta borradores, versiones y copias al abrir el panel; queda marcado como borrador para revisar antes de publicar |
+| **Login del Worker en blanco** | Si las credenciales no coinciden, el Worker responde `401` con cuerpo vacío → **página en blanco** sin mensaje (en el dominio publicado) | Medio | **Abierto**: el Worker está fuera de este repo. El modo local lo rodea para probar; convendría que el Worker devuelva el formulario con mensaje de error |
 | **Caché de Cloudflare** | Los `.js`/`.css` se cachean 4 h: con código viejo y datos nuevos la web «no cambia» | Medio | **Mitigado** con `?v=<hash>` (ver la sección «Versionado de assets») |
 | **Caché del navegador** | El HTML se cachea 10 min | Bajo | Normal: un **Ctrl+F5** alcanza |
 | **Sin analítica de visitas** | Cloudflare Web Analytics está apagado a propósito (su beacon no carga por la CSP y el aviso de privacidad declara que no hay cookies ni analítica) | Bajo | Decisión coherente con el aviso. Si se quiere medir tráfico, hay que elegir entre un medidor sin cookies o actualizar aviso + CSP |
@@ -408,13 +416,15 @@ Sitio publicado en GitHub Pages con el contenido en JSON. **Todo el rediseño de
 | **Panel y catálogo 2026-11-06** | Rediseño del panel en modo «Textos» (productos como íconos + ventana de edición), corrección del aviso de privacidad y **catálogo con categorías**: categorías de producto administrables, filtros por mascota y por categoría, buscador, contador, estado vacío, precio formateado y productos destacados | Publicado (`02b75ce`) |
 | **Cache de Cloudflare 2026-11-06** | Versionado de assets (`?v=<hash>`) + `tools/actualizar-version.js`: evita que la web sirva JS/CSS viejos con datos nuevos | Publicado (`2391b8f`) |
 | **Huella legal como enlace 2026-11-07** | El copyright del pie es un enlace a `https://estalingradocorp.com.ar/` (pestaña nueva, `rel="noopener"`), con campo editable «Enlace de la empresa (pie)» en el panel | Publicado (`60b6302`) |
-| **Documentación 2026-11-07** | `guias/ESTADO-ACTUAL.md` (informe de estado para revisión del CEO: cómo está hecho, cómo funciona, verificaciones, problemas y pendientes) + actualización de README, bitácora y guía de entrega | En este commit |
+| **Documentación 2026-11-07** | `guias/ESTADO-ACTUAL.md` (informe de estado para revisión del CEO: cómo está hecho, cómo funciona, verificaciones, problemas y pendientes) + actualización de README, bitácora y guía de entrega | Publicado |
+| **Migración a Estalingradocorp 2026-11-07** | Repo espejo en `Estalingradocorp/laboutiquecatydog.github.io`, dominio en Cloudflare `nicotips27`, panel con login de usuario/contraseña (token oculto en el Worker) | Publicado |
+| **Acceso visible + modo local 2026-11-08** | Ícono de usuario (fuera el truco de 3 clics), modo local sin login (Guardar en esta carpeta, galería y subida locales), migración automática de borradores viejos, píldoras de categorías, selección múltiple de imágenes, redes en Textos, paginación anclada, tipografía de precios, aviso auto-ocultable | En esta publicación |
 
 ---
 
 ## Pendientes / TODO
 
-- [ ] **Migrar los borradores antiguos al abrir el panel** (problema 1 de «Problemas conocidos»): aplicar la misma migración idempotente que se usó sobre los datos publicados (`categorias.tarjetas[].id`, `categoriasProducto`, `producto.mascotas[]`, `producto.categorias[]`, `producto.destacado`, quitar `etiqueta`) al borrador local y a las restauraciones del «Historial de versiones» y de las «Copias de seguridad». Mientras tanto, la mitigación es el botón **«Descartar»** del panel.
+- [x] ~~Migrar los borradores antiguos al abrir el panel~~ → **hecho el 2026-11-08**: `migrarDatos()` adapta borradores, versiones restauradas y copias al formato actual (categorías, `mascotas[]`, `categorias[]`, `destacado`, sin `etiqueta`); queda marcado como borrador para revisar antes de publicar.
 - [ ] **Search Console (con el dominio nuevo):** crear la propiedad de tipo **Dominio** para `laboutiquecatydog.com.ar` (verificación con un registro **TXT** que da Google → se agrega en Cloudflare DNS), enviar `https://laboutiquecatydog.com.ar/sitemap.xml` y pedir la indexación de la portada. La propiedad anterior (`https://laboutiquecatydog.github.io/`) ya no sirve: esa URL redirige al dominio propio. Procedimiento en `guias/ENTREGA-CLIENTE.md` (sección 10).
 - [ ] **Google Business Profile:** alta y reclamo de la ficha del local (nombre, dirección, teléfono, horarios, fotos, categoría "Tienda de mascotas") → es el factor #1 para búsquedas locales del tipo "pet shop cerca mío". La verificación puede tardar días o semanas.
 - [ ] **Guía del cliente:** video o PDF corto con la rutina del panel (entrar → editar → publicar).

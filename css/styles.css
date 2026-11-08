@@ -282,7 +282,27 @@ button { font-family: inherit; }
   color: var(--accent);
 }
 
-.main-nav { display: flex; align-items: center; gap: 36px; }
+.main-nav { display: flex; align-items: center; gap: 36px; margin-left: auto; }
+
+/* Acceso al panel: círculo minimalista, esquina superior derecha,
+   fuera del menú (visible también en móvil, junto al botón hamburguesa). */
+.admin-link {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--gray-200);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--gray-600);
+  transition: color 0.2s var(--ease), border-color 0.2s var(--ease), background 0.2s var(--ease), transform 0.15s var(--ease);
+}
+.admin-link[hidden] { display: none; }
+.admin-link svg { width: 21px; height: 21px; }
+.admin-link:hover { color: var(--black); border-color: var(--gray-300); background: var(--gray-100); }
+.admin-link:active { transform: scale(0.96); }
 
 .nav-list { display: flex; align-items: center; gap: 32px; }
 .nav-link {
@@ -586,6 +606,13 @@ button { font-family: inherit; }
   outline: none; border-color: var(--black);
   box-shadow: 0 0 0 3px rgba(18, 18, 18, 0.06);
 }
+/* La «✕» de limpieza es solo la del botón propio: se oculta la que
+   el navegador dibuja en los input type="search" (si no, se ven dos). */
+.catalog-search-input::-webkit-search-cancel-button,
+.catalog-search-input::-webkit-search-decoration {
+  -webkit-appearance: none; appearance: none; display: none;
+}
+.catalog-search-input::-ms-clear { display: none; }
 .catalog-search .buscar-lupa {
   position: absolute; left: 15px; top: 50%; transform: translateY(-50%);
   display: flex; color: var(--gray-600); pointer-events: none;
@@ -761,11 +788,20 @@ button { font-family: inherit; }
 .product-body h3 { font-size: 1.34rem; margin: 0; }
 .product-body p { margin: 0; color: var(--gray-600); font-size: 0.94rem; flex: 1; }
 .product-price {
-  font-family: var(--font-heading);
-  font-size: 1.18rem;
+  font-family: var(--font-body);
+  font-size: 1.32rem;
   font-weight: 700;
   color: var(--black);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.product-price-simbolo {
+  font-size: 0.72em;
+  font-weight: 600;
+  letter-spacing: 0;
+  margin-right: 3px;
+  color: var(--gray-600);
 }
 .product-body .link-arrow {
   align-self: flex-start;
@@ -1056,6 +1092,8 @@ html.js .hero-title.is-typed .type-caret {
   .header-inner { gap: 12px; }
 
   .nav-toggle { display: flex; }
+
+  .admin-link { margin-left: auto; }
 
   .main-nav {
     position: fixed;

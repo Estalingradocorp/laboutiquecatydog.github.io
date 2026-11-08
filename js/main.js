@@ -594,7 +594,44 @@
       function ir(n) {
         var total = totalPaginas();
         pagina = Math.min(Math.max(1, n), total);
+        /* pintar() destruye los botones (innerHTML) y con ellos el
+           foco; además, si la página nueva tiene menos filas, el
+           catálogo se achica y todo lo de abajo (esta paginación)
+           sube. Mantener el scrollY no alcanza: hay que ANCLAR la
+           paginación en su lugar de pantalla, compensando el
+           corrimiento del catálogo, de forma INSTANTÁNEA (sin animar),
+           sin robar el foco si veníamos del buscador o de los filtros
+           (repaginarTodo al filtrar). */
+        var y = window.scrollY || 0;
+        var topAntes = zona.getBoundingClientRect().top;
+        var teniaFoco = document.activeElement && zona.contains(document.activeElement);
+        /* Sin "ancla de scroll" durante el repintado: si no, el
+           navegador ajusta la posición en los frames siguientes y el
+           salto vuelve (con animación suave, se siente peor). */
+        var raiz = document.documentElement;
+        var anchorPrevio = raiz.style.overflowAnchor;
+        raiz.style.overflowAnchor = "none";
         pintar();
+        raiz.style.overflowAnchor = anchorPrevio;
+        var restaurarScroll = function () {
+          var corrimiento = zona.getBoundingClientRect().top - topAntes;
+          var destino = (window.scrollY || 0) + corrimiento;
+          if (destino < 0) { destino = 0; }
+          if (Math.abs(destino - (window.scrollY || 0)) > 1) {
+            try { window.scrollTo({ top: destino, behavior: "instant" }); }
+            catch (e) { window.scrollTo(0, destino); }
+          }
+        };
+        restaurarScroll();
+        /* El layout (reveal, alturas) se asienta en el frame siguiente:
+           se ajusta de nuevo por si el navegador movió después. */
+        if (window.requestAnimationFrame) {
+          window.requestAnimationFrame(restaurarScroll);
+        }
+        if (teniaFoco) {
+          zona.tabIndex = -1;
+          try { zona.focus({ preventScroll: true }); } catch (e2) { zona.focus(); }
+        }
       }
 
       zona.__bqIr = ir;
@@ -746,26 +783,15 @@
     }, 6000);
   }
 
-  /* ------------------- Acceso discreto al panel -------------------------- */
-  /* Tres clics seguidos en el logo (1,4 s) abren el panel de administración.
-     Es solo un atajo discreto: el login con GitHub sigue siendo obligatorio
-     y /admin/ está excluido de los buscadores. Desactivado si la página
-     está embebida (la vista previa del editor). */
+  /* ------------------- Acceso al panel (ícono de usuario) ---------------- */
+  /* El acceso es el ícono de usuario de la esquina superior derecha
+     (un enlace simple a /admin/editor.html; el login con usuario y
+     contraseña sigue siendo obligatorio). Dentro de la vista previa
+     del editor (iframe) el ícono se oculta: ahí no tiene que navegar. */
   function setupAccesoPanel() {
-    var brand = document.querySelector(".brand");
-    if (!brand || window.top !== window.self) { return; }
-    var clicks = 0;
-    var timer = null;
-    brand.addEventListener("click", function () {
-      clicks += 1;
-      if (timer) { window.clearTimeout(timer); }
-      if (clicks >= 3) {
-        clicks = 0;
-        window.location.href = "/admin/editor.html";
-        return;
-      }
-      timer = window.setTimeout(function () { clicks = 0; }, 1400);
-    });
+    var link = document.querySelector(".admin-link");
+    if (!link) { return; }
+    if (window.top !== window.self) { link.hidden = true; }
   }
 
   /* ------------------------ Progreso de scroll -------------------------- */
@@ -1045,6 +1071,7 @@
         setupProductPagination();
         setupScrollSpy();
         setupScrollProgress();
+        setupAccesoPanel();
         /* Sin typewriter en la vista previa: mostrar el hero completo */
         var hero = document.querySelector(".hero.intro");
         if (hero) {

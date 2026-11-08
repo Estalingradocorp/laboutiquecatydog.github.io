@@ -120,7 +120,7 @@ Como **respaldo físico** de entrega (buena práctica), NO como requisito. Graba
 
 ## 5. El acceso al panel
 
-- **Atajo discreto (nuevo):** tres clics seguidos en el logo de la web → abre el panel. Sigue pidiendo login con GitHub.
+- **Ícono de usuario (arriba a la derecha de la web):** abre el panel. Sigue pidiendo login con usuario y contraseña.
 - **Forma principal:** el link `…/admin/editor.html` guardado como **marcador/favorito** en su navegador y su celu (enseñale a guardarlo en la pantalla de inicio del celu — es un atajo de navegador, se llama "Agregar a la pantalla principal").
 - `/admin/` también redirige al panel.
 - Recordale: la sesión vive en la pestaña; si la cierra, vuelve a "Iniciar sesión".
@@ -136,9 +136,10 @@ El catálogo de la web tiene **dos grupos de filtros** (por mascota y por catego
 | Cargar un producto | Sección **Productos** → «+ Agregar producto» (elige la foto, depois completás título, descripción, precio, fotos y WhatsApp) |
 | Marcar para qué mascotas sirve | En la ventanita del producto → **«Para qué mascotas»** → casillas **Perros** / **Gatos**. Si no marca ninguna, sirve para todas (botón «Todos») |
 | Marcar a qué categoría pertenece | En la ventanita del producto → **«Categorías de producto»** → casillas (Alimentos, Descanso, Transporte, Accesorios, Juguetes…). Un producto puede estar en **varias** a la vez |
-| Crear una categoría nueva | En la sección **Productos**, bloque **«Categorías de producto»** → «+ Agregar categoría», y le ponés el nombre |
-| Renombrar una categoría | En ese mismo bloque: editás el texto de la fila y listo (no se rompe lo que ya está cargado) |
-| Quitar una categoría | En ese mismo bloque: botón **✕** de la fila. Los productos que la usaban quedan sin esa categoría |
+| Crear una categoría nueva | En la sección **Productos** (modo **Textos**), bloque **«Categorías de producto»** → «+ Nueva categoría», y le ponés el nombre. Las categorías se ven como píldoras, igual que los filtros de la web |
+| Renombrar una categoría | En ese mismo bloque: escribís el nombre nuevo en la píldora y listo (no se rompe lo que ya está cargado) |
+| Quitar una categoría | En ese mismo bloque: botón **✕** de la píldora. Los productos que la usaban quedan sin esa categoría |
+| Agregar varias fotos de una vez | Al elegir una foto, tocás varias en la galería (✓) y confirmás con el contador + botón junto a «Subir desde la PC»: la primera va al campo y el resto se agrega como fotos nuevas |
 | Poner un producto arriba de todo | En la ventanita del producto → interruptor **«Destacado»** |
 | Poner el precio | Campo **«Precio (opcional)»**: si escribe un número (12000) sale `$12.000`; si escribe texto («Consultar») sale tal cual |
 
@@ -146,21 +147,9 @@ El catálogo de la web tiene **dos grupos de filtros** (por mascota y por catego
 
 **Tip para la reunión:** carguen un producto real con el cliente (una marca de alimento que venda) y muéstrenle cómo aparece cuando toca el filtro. Es la forma más rápida de que se entienda.
 
-### ⚠️ Si el panel no muestra el bloque «Categorías de producto»
+### Borradores viejos (ya se adaptan solos)
 
-**Síntoma:** en la sección **Productos** del panel no aparece el bloque «Categorías de producto» (las cinco categorías) ni las casillas de categorías en la ventanita de un producto, **aunque la web sí tiene los filtros**.
-
-**Por qué:** el panel guarda un **borrador automático en el navegador**. Si ese navegador ya se usó antes del cambio de categorías, quedó guardado un borrador con el **formato anterior**, y el panel lo recupera tal cual (sin adaptarlo). El panel no está roto: está mostrando un borrador viejo.
-
-**Qué hacer (sin tocar nada):**
-
-1. En el panel, botón **«Descartar»** (pide confirmación: *«¿Descartar todos los cambios sin publicar? Se vuelve a la última versión en GitHub»*). Eso borra el borrador viejo del navegador y recarga lo publicado.
-2. Volver a abrir la sección **Productos** → el bloque **«Categorías de producto»** aparece con sus cinco filas.
-3. A partir de ahí, trabajar sobre el modelo nuevo y **«Publicar cambios»** como siempre.
-
-> **Mientras tanto: no publicar desde un panel que muestre el modelo viejo** (productos sin «Categorías de producto» ni «Destacado»). Si se publica desde ahí, el catálogo nuevo se pisa y la web vuelve a mostrar los filtros viejos. Está anotado como pendiente de corrección en `README.md` (sección «Problemas conocidos») y en `guias/ESTADO-ACTUAL.md`.
->
-> El aviso que ayuda a detectarlo: al entrar, el panel muestra el cartel **«Se restauró un borrador pendiente de publicar»** y el chip de cambios queda activo aunque el cliente no haya tocado nada.
+El panel guarda un **borrador automático en el navegador**. Si ese navegador se usó antes del cambio de categorías, el borrador tiene el **formato anterior** (sin bloque de categorías). Desde el 2026-11-08 el panel **lo migra solo al abrir**: el bloque aparece, las etiquetas viejas se conservan como categorías y queda marcado como borrador («Cambios sin publicar») para revisarlo antes de publicar. Nada se pierde ni se publica solo. Si aun así no aparece el bloque, pulsar **«Descartar»** (borra el borrador y recarga lo publicado) y volver a abrir la sección Productos en modo **Textos**.
 
 ## 6. Checklist de la reunión de entrega
 

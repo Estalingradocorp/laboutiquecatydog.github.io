@@ -1,7 +1,7 @@
 # Estado actual del proyecto — informe para revisión
 
 > **Documento interno** (no se publica en la web: `guias/` está excluido de la publicación y bloqueado en `robots.txt`).
-> Última actualización: **2026-11-07**. Estado del código: rama `main` del repo `laboutiquecatydog/laboutiquecatydog.github.io`, commit `60b6302`, **publicado y verificado en producción**.
+> Última actualización: **2026-11-08**. Estado del código: rama `main` del repo `Estalingradocorp/laboutiquecatydog.github.io` (migración del 2026-11-07), con la tanda de acceso visible + modo local + pulido del panel y la web.
 > Para el detalle de cada cambio, día por día: `BITACORA.md`. Para el uso diario: `README.md`.
 
 ---
@@ -13,7 +13,7 @@ Sitio web de una sola página para **La Boutique Cat & Dog** (tienda de producto
 | Dato | Valor |
 |---|---|
 | Sitio en producción | <https://laboutiquecatydog.com.ar/> |
-| Panel de administración | `https://laboutiquecatydog.com.ar/admin/editor.html` (login con GitHub) |
+| Panel de administración | `https://laboutiquecatydog.com.ar/admin/editor.html` (login con usuario y contraseña; en `localhost` entra en **modo local** sin login) |
 | Páginas legales | `/privacidad.html` · `/terminos.html` |
 | Tecnología | HTML + CSS + JavaScript **vanilla**, sin frameworks, sin dependencias y **sin paso de build** |
 | Hosting | GitHub Pages (rama `main`, raíz) con dominio propio detrás de Cloudflare |
@@ -40,7 +40,7 @@ admin/editor.html + editor.js + editor-form.js + editor-inline.js + editor-media
 
 **Las tres piezas y qué controla cada una:**
 
-1. **Los datos** (`data/sitio.json`, `data/pagina.json`): todo el texto, las imágenes, los enlaces, las secciones, los productos y sus categorías. **El HTML no tiene contenido escrito a mano**: `index.html` es un esqueleto con el `<head>` (SEO, fuentes, JSON-LD) y contenedores vacíos.
+1. **Los datos** (`data/sitio.json`, `data/pagina.json`): todo el texto, las imágenes, los enlaces, las secciones, los productos y sus categorías. **El HTML no tiene contenido escrito a mano**: `index.html` es un esqueleto con el `<head>` (SEO, fuentes, JSON-LD) y contenedores vacíos. Los borradores viejos del navegador se **migran solos** al abrir el panel (ver §5).
 2. **El render** (`js/render.js`): arma el HTML de la página a partir de esos JSON. Todos los textos se escapan antes de insertarse (nunca se inyecta HTML crudo).
 3. **El panel** (`admin/`): editor tipo constructor — lista de secciones a la izquierda, **vista previa en vivo** del sitio real (iframe) con **edición directa sobre el texto**, formularios por campo, subida de imágenes, historial de versiones, copias de seguridad, deshacer/rehacer y publicación por commits.
 
@@ -82,7 +82,7 @@ Además: menú móvil con overlay y scroll-spy, animaciones al hacer scroll, bar
 
 ### 3.3 El panel
 
-Todo lo anterior se edita desde el navegador: textos (en la vista previa o en formularios), imágenes, productos, categorías, orden de secciones, datos del local, SEO y campos técnicos. Acceso: tres clics seguidos en el logo de la web, o el enlace directo (conviene guardarlo como marcador en el celular).
+Todo lo anterior se edita desde el navegador: textos (en la vista previa o en formularios), imágenes, productos, categorías, orden de secciones, datos del local, redes sociales (también desde el modo Textos de Contacto), SEO y campos técnicos. Acceso: **ícono de usuario en la esquina superior derecha** de la web, o el enlace directo (conviene guardarlo como marcador en el celular). En `localhost`, el panel abre en **modo local** (sin login): «Guardar en esta carpeta» escribe los JSON en disco y la galería/subida de imágenes también es local; publicar en internet se hace desde el dominio publicado.
 
 **El catálogo y sus categorías — la idea que hay que explicar:**
 
@@ -113,6 +113,8 @@ Todo lo que sigue se comprobó con pruebas automáticas sobre la **web publicada
 
 **En local (navegador Edge headless sobre el servidor local, con la API de GitHub simulada):** **151 comprobaciones** — panel de productos 36/36 · otras secciones 15/15 · pulido visual 10/10 · categorías 27/27 · web 28/28 · maquetación 15/15 · edición en la vista previa 10/10 · huella 10/10.
 
+**Tanda 2026-11-08 (todo local, headless):** modo local sin login (editor + secciones + Guardar a disco) · borrador viejo migrado (bloque aparece, etiquetas conservadas, marcado como borrador) · píldoras de categorías + Guardar · galería local (24) + subida a disco + ruta `..` rechazada · multiselección (3 imágenes → contador + fotos agregadas) · Destacado alineado + orden fijo de campos · redes en Textos del contacto (edición → borrador de sitio) · buscador web y del panel (tipeo real) · carrusel: fotos agregadas visibles (slides/puntos) + buscador en vista previa · paginación con clic real (paginación anclada, 0 px de corrimiento) · aviso de vista previa auto-oculto · ícono visible en web y ausente en vista previa, Salir → web · **0 errores de JavaScript** en todos los casos.
+
 **Estabilidad e infraestructura verificadas:** GitHub Pages reconstruye y despliega sin intervención · Cloudflare con SSL válido, `www` → ápex sin loops · HTTPS forzado · documentación interna responde **404** en producción (no es pública) · el repo tiene `main` protegido (no se puede forzar push ni borrar) · existe un **repo privado de respaldo** con el mismo contenido.
 
 ---
@@ -121,7 +123,8 @@ Todo lo que sigue se comprobó con pruebas automáticas sobre la **web publicada
 
 | # | Problema | Qué pasa | Impacto | Estado / qué hacer |
 |---|---|---|---|---|
-| 1 | **Borrador viejo en el navegador** | El panel recupera el borrador local **tal cual**, sin adaptarlo al formato nuevo. Si el navegador tenía un borrador anterior al cambio de categorías, el panel **no muestra el bloque «Categorías de producto»** (los datos del producto tampoco aparecen con sus categorías) | **Alto**: si en ese estado se pulsa «Publicar cambios», **se pisa el catálogo nuevo** (la web vuelve al modelo viejo, sin filtros por categoría). El chequeo de conflicto **no avisa**, porque compara contra el archivo recién descargado | **Abierto.** Solución de bolsillo: en el panel, botón **«Descartar»** → borra el borrador y recarga lo publicado (ya está en producción). Solución de fondo (pendiente): migrar el borrador al abrir el panel. Mientras tanto, **no publicar desde un panel que muestre datos viejos** |
+| 1 | **Borrador viejo en el navegador** | El panel recuperaba el borrador local **tal cual**, sin adaptarlo al formato nuevo: con un borrador anterior a las categorías, el panel **no mostraba el bloque «Categorías de producto»** | **Alto** (era): si se publicaba desde ahí, se pisaba el catálogo nuevo sin aviso | **Resuelto el 2026-11-08**: `migrarDatos()` adapta borradores, versiones y copias al abrir el panel (categorías, `mascotas[]`, `categorias[]`, `destacado`, sin `etiqueta`) y queda marcado como borrador para revisar |
+| 7 | **Login del Worker en blanco** | Si las credenciales no coinciden, el Worker responde `401` con cuerpo vacío → **página en blanco** sin mensaje (solo en el login publicado) | Medio | **Abierto**: el Worker está fuera de este repo. El **modo local** lo rodea para probar; convendría que el Worker devuelva el formulario con mensaje de error |
 | 2 | **Caché de Cloudflare** | Cloudflare y los navegadores cachean `.js` y `.css` **4 horas**; con código viejo y datos nuevos la web «no cambia» | Medio | **Mitigado**: los assets se piden con `?v=<hash>` (`node tools/actualizar-version.js` regenera el hash; hay que commitear el `index.html`/`admin/editor.html` con el código). Los **datos** no tienen el problema (`cache: "no-store"`) |
 | 3 | **El navegador del usuario también cachea** | El HTML se cachea 10 minutos: tras publicar, puede seguir viendo la versión anterior | Bajo | Normal: un **Ctrl+F5** alcanza. En el panel, si no aparece algo nuevo, refrescar forzando |
 | 4 | **Sin analítica de visitas** | Cloudflare Web Analytics está **apagado a propósito**: su beacon no carga (la CSP del sitio lo bloquea) y el aviso de privacidad declara que no hay cookies ni analítica | Bajo (informativo) | Decisión coherente con el aviso de privacidad. Si se quiere medir tráfico, hay que decidir entre un medidor **sin cookies** o actualizar el aviso de privacidad y la CSP |
@@ -136,7 +139,8 @@ Todo lo que sigue se comprobó con pruebas automáticas sobre la **web publicada
 
 ### 6.1 Código y calidad
 
-- [ ] **Migrar los borradores antiguos al abrir el panel** (el problema 1 de la tabla anterior). Es el único arreglo de código pendiente y está acotado: aplicar la misma migración idempotente que ya se usó sobre los datos publicados (`categorias.tarjetas[].id`, `categoriasProducto`, `producto.mascotas[]`, `producto.categorias[]`, `producto.destacado`, quitar `etiqueta`).
+- [x] ~~Migrar los borradores antiguos al abrir el panel~~ → **hecho el 2026-11-08** (`migrarDatos()`, ver §5).
+- [ ] Que el Worker devuelva el formulario con mensaje de error ante credenciales incorrectas, en vez de `401` vacío (página en blanco). Es código del Worker, fuera de este repo; el modo local lo rodea para probar.
 - [ ] Pase de calidad visual: encuadre de fotos de producto y resolución de `local.jpg`.
 - [ ] Purga opcional de la caché de Cloudflare (dejaría de quedar código viejo servido con URLs sin `?v=`).
 
@@ -171,10 +175,10 @@ Todo lo que sigue se comprobó con pruebas automáticas sobre la **web publicada
    - Verificar que el precio se formatea (`$12.000`) y que los **destacados** salen arriba con la etiqueta «Destacado».
    - En el pie, la línea **«© 2026 Estalingrado Corp…»** es un enlace que abre `https://estalingradocorp.com.ar/` en otra pestaña.
    - Revisar `/privacidad.html`, `/terminos.html` y una URL inexistente (debe dar la página 404 con salida a WhatsApp).
-2. **El panel**: `https://laboutiquecatydog.com.ar/admin/editor.html` → «Iniciar sesión con GitHub».
-   - Sección **Productos** → debe verse el bloque **«Categorías de producto»** con las cinco filas.
-   - Tocar el ícono de un producto → la ventanita con **«Para qué mascotas»**, **«Categorías de producto»**, **«Destacado»** y **«Precio»**.
-   - **Si no aparece el bloque de categorías**: pulsar **«Descartar»** (borra el borrador local y recarga lo publicado) y volver a abrir la sección. Si aun así no aparece, es el problema 1 de la tabla de arriba: hay que corregirlo en el código.
+2. **El panel**: `https://laboutiquecatydog.com.ar/admin/editor.html` → «Entrar con usuario y contraseña» (o **ícono de usuario** arriba a la derecha de la web).
+   - Sección **Productos** → modo **«Textos»** → debe verse el bloque **«Categorías de producto»** como píldoras (las mismas que ve la gente debajo del buscador).
+   - Tocar el ícono de un producto → la ventanita con **«Para qué mascotas»**, **«Categorías de producto»**, **«Destacado»** y **«Precio»**, en ese orden.
+   - En **local** (`localhost`): entra directo en **modo local** («Guardar en esta carpeta» escribe en disco; galería y subida de imágenes también locales).
    - Botón **«?»**: ayuda integrada del panel.
 3. **Móvil**: repetir la revisión en pantalla chica (menú, carrusel, filtros, grilla de productos).
 
@@ -198,8 +202,8 @@ Todo lo que sigue se comprobó con pruebas automáticas sobre la **web publicada
 | Dato | Valor |
 |---|---|
 | Rama de publicación | `main` (protegida: no se permite force-push ni borrado) |
-| Último commit | `60b6302` — «La huella legal del pie abre el sitio de la empresa en una pestaña nueva» |
-| Commits recientes | `2391b8f` versionado de assets · `02b75ce` catálogo con categorías, filtros y destacados · `e3e423f` imagen subida desde el panel |
+| Último commit | El de esta tanda (ver `git log`): acceso visible + modo local + pulido del panel y la web + documentación |
+| Commits recientes | `f12ce5c` migración a Estalingradocorp · `35a97a2` URL completa al Worker · `04147cf` Worker nicotips27 · `a1dc0f2` login usuario/clave |
 | Remotos | `origin` (GitHub Pages) y `respaldo` (repo privado de respaldo) — **contenido idéntico** |
 | Publicación | `git push origin main` → GitHub Pages reconstruye solo (~1 min) |
 | **Regla al tocar CSS o JS** | correr `node tools/actualizar-version.js` y **commitear el `index.html`/`admin/editor.html` junto con el código** (los assets se piden con `?v=<hash>` para vencer la caché de 4 h de Cloudflare) |

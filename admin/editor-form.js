@@ -238,6 +238,11 @@
      Productos). El panel le pasa el modelo con BQForm.setDatos. */
   var DATOS = null;
 
+  /* Datos del local (data/sitio.json): la sección «contacto» del modo
+     Textos también edita las redes sociales, que viven ahí. El panel
+     los pasa con BQForm.setSitio. */
+  var SITIO = null;
+
   function seccionesDe(tipo) {
     if (!DATOS || !Array.isArray(DATOS.secciones)) { return []; }
     return DATOS.secciones.filter(function (s) { return s && s.tipo === tipo; });
@@ -1205,39 +1210,47 @@
 
     var nota = crear("p");
     nota.className = "campo-pista";
-    nota.textContent = "Estas categorías ordenan el catálogo y arman los filtros de la web. No se muestran como sección en la página.";
+    nota.textContent = "Son los botones de filtro que ve la gente debajo del buscador (Todas, Alimentos, Descanso…). Desde acá se crean, renombran y borran; después se asignan a cada producto en su ventana.";
     caja.appendChild(nota);
 
+    /* Píldoras como los filtros de la web: cada categoría es una
+       etiqueta redondeada con el nombre editable, flechas mínimas al
+       pasar el mouse y la cantidad de productos que la usan. */
     var filas = crear("div");
-    filas.className = "lista-texto-filas";
+    filas.className = "lista-texto-filas lista-texto-pildoras";
     valor.forEach(function (item, i) {
       var fila = crear("div");
-      fila.className = "fila-texto";
+      fila.className = "fila-texto fila-pildora";
 
       var campo = crear("input");
       campo.type = "text";
       campo.className = "fila-texto-input";
       campo.value = item.titulo || "";
       campo.setAttribute("aria-label", "Nombre de la categoría");
+      var ajustar = function () { campo.size = Math.max(3, campo.value.length + 1); };
+      ajustar();
       campo.addEventListener("input", function () {
         item.titulo = campo.value;
+        ajustar();
         alCambiar();
       });
       fila.appendChild(campo);
 
-      fila.appendChild(botonMini("↑", "Subir", function () {
+      var acciones = crear("div");
+      acciones.className = "fila-pildora-acciones";
+      acciones.appendChild(botonMini("↑", "Subir", function () {
         if (i === 0) { return; }
         var sacado = valor.splice(i, 1)[0];
         valor.splice(i - 1, 0, sacado);
         alCambiar(true);
       }));
-      fila.appendChild(botonMini("↓", "Bajar", function () {
+      acciones.appendChild(botonMini("↓", "Bajar", function () {
         if (i >= valor.length - 1) { return; }
         var sacado = valor.splice(i, 1)[0];
         valor.splice(i + 1, 0, sacado);
         alCambiar(true);
       }));
-      fila.appendChild(botonMini("✕", "Quitar categoría", function () {
+      acciones.appendChild(botonMini("✕", "Quitar categoría", function () {
         var id = item.id;
         valor.splice(i, 1);
         /* Los productos que la tenían pierden la categoría: si no, el
@@ -1251,6 +1264,7 @@
         });
         alCambiar(true);
       }, true));
+      fila.appendChild(acciones);
 
       filas.appendChild(fila);
     });
@@ -1258,8 +1272,8 @@
 
     var agregar = crear("button");
     agregar.type = "button";
-    agregar.className = "btn-borde btn-bloque lista-agregar";
-    agregar.textContent = "+ Agregar categoría";
+    agregar.className = "lista-agregar-pildora";
+    agregar.textContent = "+ Nueva categoría";
     agregar.addEventListener("click", function () {
       var n = valor.length + 1;
       var id = "categoria-" + n;
@@ -1270,7 +1284,7 @@
       valor.push({ id: id, titulo: "Nueva categoría" });
       alCambiar(true);
     });
-    caja.appendChild(agregar);
+    filas.appendChild(agregar);
 
     contenedor.appendChild(caja);
   }
@@ -1404,12 +1418,29 @@
     contenedor.appendChild(fieldset);
   }
 
+  /* Orden de presentación en la ventana de producto: el JSON puede
+     traer las claves en otro orden (según cómo se creó cada producto)
+     y el formulario las seguía tal cual — en algunos, «Categorías» y
+     «Destacado» quedaban debajo de «+ Agregar foto». */
+  var ORDEN_PRODUCTO = {
+    titulo: 0, descripcion: 1, mascotas: 2, categorias: 3, destacado: 4,
+    precio: 5, mensajeWhatsApp: 6, fotos: 7
+  };
+
   function construirObjeto(objeto, raiz, ruta, contenedor, alCambiar, alCambiarImagen, contexto, excluidas) {
     /* Los campos técnicos van aparte, al final, en «Campos avanzados»:
       el día a día se edita sin ruido, pero nada queda fuera del panel. */
     var avanzados = [];
 
-    Object.keys(objeto).forEach(function (clave) {
+    var claves = Object.keys(objeto);
+    if (contexto && contexto.lista === "productos") {
+      claves.sort(function (a, b) {
+        var pa = (a in ORDEN_PRODUCTO) ? ORDEN_PRODUCTO[a] : 99;
+        var pb = (b in ORDEN_PRODUCTO) ? ORDEN_PRODUCTO[b] : 99;
+        return pa - pb;
+      });
+    }
+    claves.forEach(function (clave) {
       if (TECNICOS[clave]) { return; }
       if (excluidas && excluidas[clave]) { return; }
       /* El rótulo chico de los productos se retiró: si un borrador viejo lo
@@ -1469,7 +1500,7 @@
       var campo = crearCampo(clave, valor, raiz, subRuta, alCambiar, contexto);
       /* Campos cortos van lado a lado (menos scroll, más densidad).
          Las listas de opciones (píldoras) ocupan la fila entera. */
-      if (clave === "precio" || clave === "destacado" || clave === "etiqueta" ||
+      if (clave === "precio" || clave === "etiqueta" ||
           clave === "mostrarFiltros" || clave === "buscador") {
         campo.classList.add("campo-medio");
       }
@@ -1519,10 +1550,12 @@
        otras secciones (las tarjetas de «Categorías», la lista de
        «Categorías de producto»). */
     setDatos: function (datos) { DATOS = datos || null; },
+    setSitio: function (sitio) { SITIO = sitio || null; },
 
     /* Formulario de una sección de la portada (data/pagina.json)
-       alCambiar(esEstructural) · alCambiarImagen(ruta, config) */
-    construirSeccion: function (seccion, contenedor, alCambiar, alCambiarImagen) {
+       alCambiar(esEstructural) · alCambiarImagen(ruta, config) ·
+       alCambiarSitio() (para los campos que viven en datos del local) */
+    construirSeccion: function (seccion, contenedor, alCambiar, alCambiarImagen, alCambiarSitio) {
       contenedor.innerHTML = "";
       var contexto = { esHero: seccion.tipo === "hero", nivel: "raiz" };
 
@@ -1564,6 +1597,45 @@
       cuerpo.className = "form-cuerpo";
       construirObjeto(seccion, seccion, [], cuerpo, alCambiar, alCambiarImagen, contexto, identidadKeys);
       contenedor.appendChild(cuerpo);
+
+      /* La sección «contacto» también edita las redes sociales, que
+         viven en los datos del local (data/sitio.json): así el cliente
+         no tiene que cambiar de pestaña para eso. */
+      if (seccion.tipo === "contacto" && SITIO && SITIO.redes && alCambiarSitio) {
+        var grupoRedes = crear("div");
+        grupoRedes.className = "form-separador";
+        var labelRedes = crear("span");
+        labelRedes.textContent = "Redes sociales (Datos del local)";
+        grupoRedes.appendChild(labelRedes);
+        contenedor.appendChild(grupoRedes);
+
+        var cajaRedes = crear("div");
+        cajaRedes.className = "form-cuerpo";
+        ["instagram", "tiktok", "facebook"].forEach(function (clave) {
+          var red = SITIO.redes[clave] || { url: "", etiqueta: "" };
+          var rot = crear("span");
+          rot.className = "campo-etiqueta";
+          rot.textContent = clave.charAt(0).toUpperCase() + clave.slice(1);
+          cajaRedes.appendChild(rot);
+          [["etiqueta", "Etiqueta"], ["url", "Dirección (URL)"]].forEach(function (par) {
+            var campo = crear("input");
+            campo.type = par[0] === "url" ? "url" : "text";
+            campo.className = "fila-texto-input";
+            campo.style.width = "100%";
+            campo.style.boxSizing = "border-box";
+            campo.value = red[par[0]] || "";
+            campo.setAttribute("aria-label", par[1] + " de " + clave);
+            campo.placeholder = par[1];
+            campo.addEventListener("input", function () {
+              if (!SITIO.redes[clave]) { SITIO.redes[clave] = { url: "", etiqueta: "" }; }
+              SITIO.redes[clave][par[0]] = campo.value;
+              alCambiarSitio();
+            });
+            cajaRedes.appendChild(campo);
+          });
+        });
+        contenedor.appendChild(cajaRedes);
+      }
 
       /* Si el formulario se reconstruye con la ventana de producto abierta,
          su contenido se repinta para que no quede desactualizado. */

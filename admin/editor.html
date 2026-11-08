@@ -16,14 +16,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="editor.css?v=c1c7c0ed" />
+  <link rel="stylesheet" href="editor.css?v=e88f1904" />
   <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
   <div id="app">
 
     <!-- ============ VISTA: LOGIN ============ -->
-    <section id="vista-auth" class="vista vista-auth" hidden>
+    <!-- Sin "hidden" a propósito: si el JavaScript no llega a correr
+         (error de red, caché vieja, bloqueador), el usuario ve el
+         acceso en vez de una página totalmente en blanco. El init()
+         del editor oculta esta vista cuando corresponde. -->
+    <section id="vista-auth" class="vista vista-auth">
       <div class="auth-tarjeta">
         <img class="auth-logo" src="../assets/img/logo.png" alt="Logotipo de La Boutique Cat &amp; Dog" />
         <h1>Panel de administración</h1>
@@ -166,6 +170,10 @@
       <div class="media-tabs" role="tablist" aria-label="Origen de la imagen">
         <button id="media-tab-galeria" class="modo-btn is-activo" type="button">Galería del sitio</button>
         <button id="media-tab-subir" class="modo-btn" type="button">Subir desde la PC</button>
+        <div id="media-seleccion" class="media-seleccion" hidden>
+          <span id="media-contador" class="media-contador" aria-live="polite"></span>
+          <button id="media-confirmar" class="btn-rojo btn-chico" type="button">Usar imagen</button>
+        </div>
       </div>
       <div id="media-galeria" class="media-galeria">
         <p class="form-vacio">Cargando la galería…</p>
@@ -288,9 +296,9 @@
   <!-- ============ ZONA DE AVISOS (TOAST) ============ -->
   <div id="toasts" class="toasts" aria-live="polite"></div>
 
-  <script src="editor-form.js?v=c1c7c0ed"></script>
-  <script src="editor-inline.js?v=c1c7c0ed"></script>
-  <script src="editor-media.js?v=c1c7c0ed"></script>
-  <script src="editor.js?v=c1c7c0ed"></script>
+  <script src="editor-form.js?v=e88f1904"></script>
+  <script src="editor-inline.js?v=e88f1904"></script>
+  <script src="editor-media.js?v=e88f1904"></script>
+  <script src="editor.js?v=e88f1904"></script>
 </body>
 </html>

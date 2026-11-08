@@ -517,6 +517,78 @@ Tanda de cierre: el trabajo de la entrada anterior se **publicó y se verificó 
 
 ---
 
+## 2026-11-08 — Acceso visible, modo local completo y pulido del panel y la web
+
+Tanda larga, **todo en local y sin tocar GitHub hasta el cierre** (el usuario lo autorizó al final para publicar esta tanda). El repo de trabajo es el de la empresa (`Estalingradocorp/laboutiquecatydog.github.io`), clonado de cero tras borrar la carpeta; quedó una **copia intacta** en `C:\Users\nbmn8\OneDrive\Escritorio\copia repo la boutique` (commit `f12ce5c`, sin cambios locales).
+
+### 1. Ícono de usuario (reemplaza el acceso oculto)
+
+- El acceso de tres clics al logo se retiró. Ahora hay un **ícono de usuario minimalista** (círculo de 42 px, trazo fino) en la **esquina superior derecha** del header, visible en escritorio y móvil, que enlaza a `/admin/editor.html` (`js/render.js` + `css/styles.css`).
+- **Bug del panel-anidado**: la vista previa re-dibujaba el header y recreaba el ícono visible dentro del iframe → al tocarlo, el panel se cargaba dentro del propio panel. Arreglo: `buildHeader` **no dibuja el ícono si está embebido** (cada dibujo, no solo al inicio) y `reiniciar()` también lo oculta.
+- **«Salir» en modo local** lleva a la web (`/`) en vez de recargar el panel.
+
+### 2. Modo local (sin Worker ni token)
+
+El login con usuario/clave del Worker devolvía `401` con cuerpo vacío ante credenciales que no coinciden → página en blanco, y bloqueaba probar en local. Para trabajar sin credenciales:
+
+- **Carga directa**: en `localhost`/`127.0.0.1`, el panel arranca en **modo local**: lee `data/*.json` de la carpeta, muestra «Modo local (sin publicar)» y entra directo al editor.
+- **Guardado local**: el botón pasa a **«Guardar en esta carpeta»** y escribe `data/*.json` vía `POST /__local/guardar` del servidor local (solo esos dos archivos). La web local muestra los cambios al recargar.
+- **Imágenes locales**: `GET /__local/imagenes` (galería desde `assets/img/`) y `POST /__local/subir-imagen` (escribe el binario validado). La subida sigue optimizando (JPEG 82 %, 1600 px + variante `-900`).
+- **Panel que nunca queda en blanco**: la vista de acceso es visible por defecto (antes las 3 vistas nacían ocultas y sin JS era blanco total) + aviso de carga colgada a los 15 s.
+- Producción no cambia: el modo local solo se activa en localhost.
+
+> Nota: el `401` vacío del Worker **sigue existiendo para el login publicado** si las credenciales no coinciden (es código del Worker, fuera de este repo). El modo local lo evita para probar.
+
+### 3. Migración automática de borradores viejos (el bug «no veo las categorías»)
+
+Causa raíz de varios reportes: el panel restauraba el borrador de `localStorage` **sin adaptarlo**; con un borrador anterior a las categorías, el bloque «Categorías de producto» no se dibujaba —y publicar desde ahí pisaba el catálogo nuevo sin aviso (el chequeo SHA no lo detectaba). Ahora `migrarDatos()` (idempotente, en `admin/editor.js`) adapta cualquier modelo viejo al entrar: tarjetas con `id`, `categoriasProducto`, `mascotas` como lista de ids, `categorias` desde la vieja `etiqueta` (las etiquetas nuevas se conservan como categorías), `destacado` por defecto y se quita `etiqueta`. Se aplica al cargar (ambos modos) y al restaurar versiones/copias. Queda marcado como borrador para revisarlo antes de publicar.
+
+### 4. Pulido del panel
+
+- **Categorías como píldoras** (antes: formulario apilado): etiquetas redondeadas iguales a los filtros de la web, nombre editable en línea, ↑ ↓ ✕ mínimos al pasar el mouse, botón punteado «+ Nueva categoría» y ayuda que aclara que son los botones de filtro.
+- **Selección múltiple de imágenes**: tocar una imagen la marca (✓), se pueden marcar varias; contador («3 imágenes») + botón «Agregar 3» junto a «Subir desde la PC». La primera va al campo y **el resto se agrega como fotos/slides nuevas** en la misma lista.
+- **Ventana de imágenes encima** de la de producto (`#modal-imagenes` z 200, `#modal-confirmar` z 300): antes quedaba detrás.
+- **«Destacado» alineado**: el checkbox pasó a fila completa con alineación superior (antes en media columna, desalineado).
+- **Orden fijo de campos** en la ventana de producto (Título → Descripción → Mascotas → Categorías → Destacado → Precio → Mensaje → Fotos), sin importar el orden de claves del JSON.
+- **Redes sociales en el modo Textos** de la sección Contacto (grupo «Redes sociales (Datos del local)», 6 campos), sin cambiar de pestaña.
+- **Aviso de vista previa auto-ocultable**: tras guardar/publicar se va solo a los 3 s con desvanecimiento suave (antes quedaba atorado).
+- `editor-media.js`: `REPO` actualizado al repo de la empresa (apuntaba al viejo).
+
+### 5. Pulido de la web
+
+- **Doble «✕» del buscador**: el input es `type="search"` (✕ nativa del navegador) + botón propio. Ahora la nativa se oculta en CSS (web y panel); queda una sola.
+- **Paginación sin salto**: al cambiar de página, el catálogo se achica (6 vs 1 producto) y todo se movía. Ahora la paginación se **ancla en su lugar de pantalla** (compensación instantánea + `overflow-anchor: none` durante el repintado + foco en el contenedor, sin robarlo al buscador). Verificado con clic de mouse real: 0 px de corrimiento.
+- **Tipografía de precios**: `$` en span propio (más chico, gris) + números Inter 700 con `tabular-nums`, 1.32 rem. («Consultar» y textos libres intactos.)
+- `preview.cmd` abre **web + panel** en dos pestañas (antes solo la web).
+
+### Verificación (headless, navegador Edge, servidor local)
+
+| Prueba | Resultado |
+|---|---|
+| Modo local sin login (editor + secciones + Guardar a disco) | OK |
+| Borrador viejo migrado (bloque aparece, etiquetas conservadas, borrador marcado) | OK |
+| Píldoras de categorías + botón Guardar | OK |
+| Galería local (24) + subida a disco + ruta `..` rechazada | OK |
+| Multiselección (3 imágenes → contador + fotos agregadas) | OK |
+| Destacado alineado, orden fijo de campos | OK |
+| Redes en Textos del contacto (edición → borrador de sitio) | OK |
+| Buscador web y del panel (tipeo real) | OK (`1 de 7`) |
+| Carrusel: fotos agregadas aparecen (slides/puntos) + buscador en vista previa | OK |
+| Paginación con clic real (ancla, 0 px) | OK |
+| Aviso de vista previa auto-oculto | OK |
+| Ícono visible en web, ausente en vista previa, Salir → web | OK |
+| Sin errores de JavaScript en ningún caso | OK |
+
+Los scripts de prueba viven en `%TEMP%\opencode\` (no se publican).
+
+### Pendiente (no tocado en esta tanda)
+
+- El `401` vacío del Worker ante credenciales incorrectas (login publicado): el modo local lo rodea, pero convendría que el Worker devuelva el formulario con mensaje de error en vez de una página en blanco.
+- HTTPS del dominio nuevo (certificado pendiente según la entrada anterior).
+- Contenido del negocio: 7 productos (incluye «Paisaje Salta» y «estatua», categoría «paisaje prueba») + 3 fotos nuevas en `assets/img/`, guardados en local y **incluidos en la publicación de esta tanda**.
+
+---
+
 ## 2026-11-07 — Migración a Estalingradocorp, Cloudflare y panel sin GitHub para el cliente
 
 Tanda larga: el sitio pasó de `laboutiquecatydog/laboutiquecatydog.github.io` a `Estalingradocorp/laboutiquecatydog.github.io` (dueño nuevo), dominio propio en Cloudflare cuenta `nicotips27`, certificado HTTPS pendiente y panel con usuario/contraseña literal (sin cuenta de GitHub para el cliente).

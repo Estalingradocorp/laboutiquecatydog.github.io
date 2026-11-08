@@ -18,6 +18,13 @@
   /* ----------------------------- Constantes ----------------------------- */
   var WORKER_BASE = "https://sveltia-cms-auth.nicotips27.workers.dev";
   var REPO = "Estalingradocorp/laboutiquecatydog.github.io";
+
+  /* Modo local: en localhost/127.0.0.1 el panel carga los JSON de esta
+     carpeta sin pasar por el Worker ni GitHub (para ver y probar el
+     panel sin credenciales). Publicar queda deshabilitado: en local
+     solo se revisa; publicar se hace desde el dominio publicado. */
+  var MODO_LOCAL = (location.hostname === "localhost" ||
+    location.hostname === "127.0.0.1");
   var BRANCH = "main";
   var ARCHIVO_PAGINA = "data/pagina.json";
   var ARCHIVO_SITIO = "data/sitio.json";
@@ -199,6 +206,10 @@
        sola. */
     if (modal.id === "modal-item" && window.BQItemCerrar) {
       window.BQItemCerrar();
+      /* Al cerrar la ventana, la vista previa se repinta con lo último
+         editado (fotos incluidas), por si la actualización quedó
+         diferida mientras se editaba. */
+      if (datos && datosSitio) { programarRerender(); }
     }
     if (FOCO_ANTES_MODAL && FOCO_ANTES_MODAL.focus) {
       try { FOCO_ANTES_MODAL.focus(); } catch (e2) {}
@@ -389,12 +400,223 @@
   }
 
   /* ------------------------- Carga del contenido ------------------------ */
+  /* ------------ Migración de datos viejos (borradores) ----------------- */
+  /* Los modelos guardados antes del catálogo por categorías tienen otra
+     forma: tarjetas sin "id", productos con "mascotas" como texto y
+     "etiqueta" en vez de "categorias", y sin "categoriasProducto".
+     Si el panel los usa tal cual, partes del formulario no se dibujan
+     (p. ej. el bloque «Categorías de producto») y publicar pisaría el
+     catálogo nuevo. Esta migración idempotente los adapta al formato
+     actual: los datos ya migrados quedan igual. */
+  function normalizarTexto(v) {
+    return String(v == null ? "" : v).toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  }
+
+  function idUnicoDe(base, usados) {
+    var id = base || "categoria";
+    var candidato = id;
+    var n = 2;
+    while (usados[candidato]) { candidato = id + "-" + n; n += 1; }
+    usados[candidato] = true;
+    return candidato;
+  }
+
+  function migrarDatos(modelo) {
+    if (!modelo || !Array.isArray(modelo.secciones)) { return modelo; }
+
+    /* 1) Tarjetas de categorías (mascotas) con id estable. */
+    var idsTarjetas = {};
+    modelo.secciones.forEach(function (s) {
+      if (s && s.tipo === "categorias" && Array.isArray(s.tarjetas)) {
+        s.tarjetas.forEach(function (t) {
+          if (t && typeof t === "object") {
+            if (!t.id) { t.id = normalizarTexto(t.titulo); }
+            t.id = idUnicoDe(String(t.id), idsTarjetas);
+          }
+        });
+      }
+    });
+
+    /* 2) Sección de productos: filtros, buscador y lista administrable. */
+    var CATEGORIAS_BASE = [
+      { id: "alimentos", titulo: "Alimentos" },
+      { id: "descanso", titulo: "Descanso" },
+      { id: "transporte", titulo: "Transporte" },
+      { id: "accesorios", titulo: "Accesorios" },
+      { id: "juguetes", titulo: "Juguetes" }
+    ];
+    modelo.secciones.forEach(function (s) {
+      if (!s || s.tipo !== "productos") { return; }
+      if (typeof s.mostrarFiltros !== "boolean") { s.mostrarFiltros = true; }
+      if (typeof s.buscador !== "boolean") { s.buscador = true; }
+      if (!Array.isArray(s.categoriasProducto) || !s.categoriasProducto.length) {
+        s.categoriasProducto = CATEGORIAS_BASE.map(function (c) {
+          return { id: c.id, titulo: c.titulo };
+        });
+      }
+      var idsCats = {};
+      s.categoriasProducto.forEach(function (c) {
+        if (c && typeof c === "object") {
+          if (!c.id) { c.id = normalizarTexto(c.titulo); }
+          c.id = idUnicoDe(String(c.id), idsCats);
+        }
+      });
+      var buscarCategoria = function (titulo) {
+        var clave = normalizarTexto(titulo);
+        for (var i = 0; i < s.categoriasProducto.length; i++) {
+          if (s.categoriasProducto[i].id === clave) { return s.categoriasProducto[i].id; }
+        }
+        for (var j = 0; j < s.categoriasProducto.length; j++) {
+          if (normalizarTexto(s.categoriasProducto[j].titulo) === clave) {
+            return s.categoriasProducto[j].id;
+          }
+        }
+        return null;
+      };
+
+      /* 3) Productos: mascotas como lista de ids, categorías como lista,
+         destacado por defecto, y la vieja "etiqueta" se convierte en
+         categoría (si era una etiqueta nueva, se crea en la lista). */
+      if (!Array.isArray(s.productos)) { return; }
+      s.productos.forEach(function (p) {
+        if (!p || typeof p !== "object") { return; }
+
+        if (typeof p.mascotas === "string") {
+          var tokens = p.mascotas.split(/[\s,;]+/).filter(Boolean);
+          p.mascotas = tokens.map(function (tok) {
+            var clave = normalizarTexto(tok);
+            var encontrado = null;
+            modelo.secciones.forEach(function (cs) {
+              if (encontrado || !cs || cs.tipo !== "categorias" || !Array.isArray(cs.tarjetas)) { return; }
+              cs.tarjetas.forEach(function (t) {
+                if (encontrado || !t) { return; }
+                if (String(t.id).indexOf(clave) === 0 ||
+                    normalizarTexto(t.titulo).indexOf(clave) === 0) {
+                  encontrado = t.id;
+                }
+              });
+            });
+            return encontrado || clave;
+          });
+        } else if (!Array.isArray(p.mascotas)) {
+          p.mascotas = [];
+        }
+
+        var etiquetaVieja = (typeof p.etiqueta === "string" && p.etiqueta.trim() !== "")
+          ? p.etiqueta.trim() : "";
+        if (etiquetaVieja) {
+          var idCat = buscarCategoria(etiquetaVieja);
+          if (!idCat) {
+            idCat = idUnicoDe(normalizarTexto(etiquetaVieja), idsCats);
+            s.categoriasProducto.push({ id: idCat, titulo: etiquetaVieja });
+          }
+          if (!Array.isArray(p.categorias)) { p.categorias = []; }
+          if (p.categorias.indexOf(idCat) === -1) { p.categorias.push(idCat); }
+        }
+        if (!Array.isArray(p.categorias)) { p.categorias = []; }
+        if (typeof p.destacado !== "boolean") { p.destacado = false; }
+        if (Object.prototype.hasOwnProperty.call(p, "etiqueta")) { delete p.etiqueta; }
+      });
+    });
+
+    return modelo;
+  }
+
+  /* Modo local (localhost): lee data/*.json de esta misma carpeta,
+     sin Worker ni token. Sirve para ver el panel y probar ediciones
+     sin credenciales; publicar queda deshabilitado. */
+  function cargarEditorLocal() {
+    mostrarVista("vista-carga");
+    $("#boton-carga-reintentar").hidden = true;
+    $("#carga-texto").textContent = "Cargando el contenido local…";
+
+    var pedirLocal = function (ruta) {
+      return fetch("../" + ruta, { cache: "no-store" }).then(function (res) {
+        if (!res.ok) { throw new Error("HTTP " + res.status + " al leer " + ruta + " en local"); }
+        return res.json();
+      });
+    };
+
+    Promise.all([pedirLocal(ARCHIVO_PAGINA), pedirLocal(ARCHIVO_SITIO)])
+      .then(function (paginaSitio) {
+        datos = migrarDatos(paginaSitio[0]);
+        datosSitio = paginaSitio[1];
+
+        historial = [];
+        punteroHistorial = -1;
+        instantaneaPublicada = instantaneaActual();
+
+        /* El borrador local (si quedó alguno) se restaura igual que
+           en el modo publicado. */
+        var crudo = localStorage.getItem(CLAVE_BORRADOR);
+        if (crudo) {
+          try {
+            var guardado = JSON.parse(crudo);
+            if (guardado && Array.isArray(guardado.secciones)) { datos = guardado; }
+          } catch (e2) { localStorage.removeItem(CLAVE_BORRADOR); }
+        }
+        var crudoSitio = localStorage.getItem(CLAVE_BORRADOR_SITIO);
+        if (crudoSitio) {
+          try {
+            var guardadoSitio = JSON.parse(crudoSitio);
+            if (guardadoSitio && typeof guardadoSitio === "object") { datosSitio = guardadoSitio; }
+          } catch (e2) { localStorage.removeItem(CLAVE_BORRADOR_SITIO); }
+        }
+
+        /* Si el borrador era de antes de las categorías, se adapta al
+           formato actual para que el bloque y las casillas aparezcan.
+           Como difiere de lo publicado, queda marcado como borrador:
+           el usuario lo revisa antes de publicar. */
+        datos = migrarDatos(datos);
+
+        compararConPublicado();
+        capturarHistorial(true);
+        seccionAbierta = -1;
+        actualizarEstadoCambios();
+        armarPlantillas();
+        renderLista();
+        actualizarModoPanel();
+        arrancarVistaPrevia();
+
+        var cuenta = $("#estado-cuenta");
+        cuenta.textContent = "Modo local (sin publicar)";
+        cuenta.hidden = false;
+
+        /* En local el botón guarda en esta carpeta (no publica en
+           GitHub): así las ediciones se ven en la web local. */
+        var botonPublicar = $("#boton-publicar");
+        botonPublicar.textContent = "Guardar en esta carpeta";
+        botonPublicar.title = "Guarda los cambios en los archivos de esta carpeta (la web local los muestra al recargar). Para publicar en internet usá el panel del dominio publicado.";
+
+        mostrarVista("vista-editor");
+        toast("Modo local: estás viendo los datos de esta carpeta. Para publicar, usá el panel en el dominio publicado.", "ok", 6000);
+      })
+      .catch(function (err) {
+        mostrarVista("vista-carga");
+        $("#carga-texto").textContent = "No se pudo cargar el contenido local (" + err.message + ").";
+        $("#boton-carga-reintentar").hidden = false;
+      });
+  }
+
   function cargarEditor() {
     token = sessionStorage.getItem(CLAVE_TOKEN) || "";
+    if (!token && MODO_LOCAL) { cargarEditorLocal(); return; }
     if (!token) { mostrarVista("vista-auth"); return; }
     mostrarVista("vista-carga");
     $("#boton-carga-reintentar").hidden = true;
     $("#carga-texto").textContent = "Cargando el contenido…";
+
+    /* Si la red o la API quedan colgadas, que el usuario lo sepa en
+       vez de mirar la pantalla en blanco: a los 15 s aparece el
+       aviso y el botón de reintento. */
+    var timerCarga = window.setTimeout(function () {
+      if (!document.getElementById("vista-carga").hidden) {
+        $("#carga-texto").textContent = "Está tardando más de lo normal… Revisá tu conexión e intentá de nuevo.";
+        $("#boton-carga-reintentar").hidden = false;
+      }
+    }, 15000);
 
     /* Verificar permiso: solo la cuenta con acceso de ESCRITURA al repo
        puede entrar. Otras cuentas GitHub ven "no autorizado" y no
@@ -420,7 +642,7 @@
       cuenta.hidden = false;
 
       return Promise.all([obtenerPagina(), obtenerSitio()]).then(function (paginaSitio) {
-        datos = paginaSitio[0];
+        datos = migrarDatos(paginaSitio[0]);
         datosSitio = paginaSitio[1];
 
         /* Base del historial y del chip: el estado tal cual está en GitHub */
@@ -448,6 +670,11 @@
           } catch (e2) { localStorage.removeItem(CLAVE_BORRADOR_SITIO); }
         }
 
+        /* Borrador viejo (anterior a las categorías): se migra para
+           que el bloque y las casillas aparezcan; queda como borrador
+           para revisarlo antes de publicar. */
+        datos = migrarDatos(datos);
+
         /* El chip refleja la diferencia real con lo publicado */
         compararConPublicado();
         if (borrador || borradorSitio) {
@@ -461,9 +688,11 @@
         renderLista();
         actualizarModoPanel();
         arrancarVistaPrevia();
+        window.clearTimeout(timerCarga);
         mostrarVista("vista-editor");
       });
     }).catch(function (err) {
+      window.clearTimeout(timerCarga);
       if (String(err.message).indexOf("TOKEN_INVALIDO") !== -1) {
         sessionStorage.removeItem(CLAVE_TOKEN);
         token = "";
@@ -806,6 +1035,38 @@
   function pedirImagen(destino, indice, ruta, opciones) {
     if (!window.BQMedia) { return; }
     var op = opciones || {};
+
+    /* Escribe UNA imagen en el campo indicado (completando srcset y
+       medidas según el contexto). */
+    function aplicarUna(media, raiz) {
+      escribirEn(raiz, ruta, media.imagen);
+      var campo = ruta[ruta.length - 1];
+      var contenedor = obtenerEn(raiz, ruta.slice(0, -1));
+      if (op.conSrcset && media.srcset) {
+        contenedor.srcset = media.srcset;
+        contenedor.sizes = op.sizes || "(max-width: 860px) 100vw, 50vw";
+      } else if (campo === "imagen") {
+        /* Sin variante -900: limpiar restos para no mezclar tamaños */
+        delete contenedor.srcset;
+        delete contenedor.sizes;
+      }
+      if (op.dims && media.ancho) {
+        contenedor[op.dims[0]] = media.ancho;
+        contenedor[op.dims[1]] = media.alto;
+      }
+    }
+
+    function terminar() {
+      if (destino === 0) {
+        marcarCambios(true);
+        if (modoPanel === "texto" && seccionAbierta === indice) { actualizarFormularioActual(); }
+      } else {
+        marcarCambiosSitio(true);
+        if (pestanaActual === "sitio") { reconstruirFormSitio(); }
+      }
+      programarRerender();
+    }
+
     BQMedia.abrir({
       titulo: op.titulo || "Elegir imagen",
       tipo: op.tipo || "foto",
@@ -813,31 +1074,42 @@
       alElegir: function (media) {
         var raiz = destino === 0 ? (datos && datos.secciones[indice]) : datosSitio;
         if (!raiz) { return; }
-        escribirEn(raiz, ruta, media.imagen);
-
-        var campo = ruta[ruta.length - 1];
-        var contenedor = obtenerEn(raiz, ruta.slice(0, -1));
-        if (op.conSrcset && media.srcset) {
-          contenedor.srcset = media.srcset;
-          contenedor.sizes = op.sizes || "(max-width: 860px) 100vw, 50vw";
-        } else if (campo === "imagen") {
-          /* Sin variante -900: limpiar restos para no mezclar tamaños */
-          delete contenedor.srcset;
-          delete contenedor.sizes;
+        aplicarUna(media, raiz);
+        terminar();
+      },
+      /* Varias imágenes a la vez: la primera va al campo y el resto se
+         agrega como ítems nuevos en la misma lista (p. ej. las fotos
+         de un producto o los slides del carrusel). En un campo simple
+         (logo, imagen suelta) solo se aplica la primera. */
+      alElegirMultiple: function (medias) {
+        var raiz = destino === 0 ? (datos && datos.secciones[indice]) : datosSitio;
+        if (!raiz || !medias || !medias.length) { return; }
+        aplicarUna(medias[0], raiz);
+        if (medias.length > 1 && ruta.length >= 3) {
+          var lista = obtenerEn(raiz, ruta.slice(0, -2));
+          var itemActual = obtenerEn(raiz, ruta.slice(0, -1));
+          if (Array.isArray(lista) && itemActual && typeof itemActual === "object") {
+            for (var i = 1; i < medias.length; i++) {
+              var copia = JSON.parse(JSON.stringify(itemActual));
+              copia[ruta[ruta.length - 1]] = medias[i].imagen;
+              if (op.conSrcset) {
+                if (medias[i].srcset) {
+                  copia.srcset = medias[i].srcset;
+                  copia.sizes = op.sizes || "(max-width: 860px) 100vw, 50vw";
+                } else {
+                  delete copia.srcset;
+                  delete copia.sizes;
+                }
+              }
+              if (op.dims && medias[i].ancho) {
+                copia[op.dims[0]] = medias[i].ancho;
+                copia[op.dims[1]] = medias[i].alto;
+              }
+              lista.push(copia);
+            }
+          }
         }
-        if (op.dims && media.ancho) {
-          contenedor[op.dims[0]] = media.ancho;
-          contenedor[op.dims[1]] = media.alto;
-        }
-
-        if (destino === 0) {
-          marcarCambios(true);
-          if (modoPanel === "texto" && seccionAbierta === indice) { actualizarFormularioActual(); }
-        } else {
-          marcarCambiosSitio(true);
-          if (pestanaActual === "sitio") { reconstruirFormSitio(); }
-        }
-        programarRerender();
+        terminar();
       }
     });
   }
@@ -1059,10 +1331,13 @@
     var caja = $("#form-seccion");
     var scroll = caja ? caja.scrollTop : 0;
     /* El motor de formularios necesita el modelo entero: de ahí saca las
-       opciones de «Para qué mascotas» y de «Categorías de producto». */
+       opciones de «Para qué mascotas» y de «Categorías de producto».
+       Los datos del local sirven para editar las redes sociales desde
+       la sección «contacto» sin cambiar de pestaña. */
     BQForm.setDatos(datos);
+    BQForm.setSitio(datosSitio);
     BQForm.construirSeccion(datos.secciones[seccionAbierta], caja,
-      alCambiarSeccionForm, alCambiarImagenSeccion);
+      alCambiarSeccionForm, alCambiarImagenSeccion, alCambiarSitioForm);
     if (caja) { caja.scrollTop = scroll; }
   }
 
@@ -1249,7 +1524,7 @@
 
         if (rutaArchivo === ARCHIVO_PAGINA) {
           if (!json || !Array.isArray(json.secciones)) { throw new Error("FORMATO"); }
-          datos = json;
+          datos = migrarDatos(json);
           seccionAbierta = -1;
           renderLista();
           if (pestanaActual === "secciones" && modoPanel === "texto") { actualizarFormularioActual(); }
@@ -1371,7 +1646,7 @@
   function aplicarCopiaBorrador(objPagina, objSitio, aviso) {
     if (objPagina) {
       if (!objPagina.secciones || !Array.isArray(objPagina.secciones)) { throw new Error("FORMATO"); }
-      datos = objPagina;
+      datos = migrarDatos(objPagina);
       seccionAbierta = -1;
       renderLista();
       if (pestanaActual === "secciones" && modoPanel === "texto") { actualizarFormularioActual(); }
@@ -1451,7 +1726,82 @@
     lector.readAsText(archivo);
   }
 
+  /* Aviso de la vista previa: aparece tras guardar/publicar y se va
+     solo a los 3 segundos con un desvanecimiento suave (no queda
+     atorado sobre la vista). */
+  var timerAvisoVista = 0;
+  function mostrarAvisoVista() {
+    var aviso = $("#vista-aviso");
+    if (!aviso) { return; }
+    window.clearTimeout(timerAvisoVista);
+    aviso.classList.remove("se-va");
+    aviso.hidden = false;
+    timerAvisoVista = window.setTimeout(function () {
+      aviso.classList.add("se-va");
+      window.setTimeout(function () {
+        aviso.hidden = true;
+        aviso.classList.remove("se-va");
+      }, 500);
+    }, 3000);
+  }
+
+  function ocultarAvisoVista() {
+    var aviso = $("#vista-aviso");
+    window.clearTimeout(timerAvisoVista);
+    if (aviso) { aviso.hidden = true; aviso.classList.remove("se-va"); }
+  }
+
+  /* Guardado local (modo localhost): escribe data/*.json en esta
+     carpeta a través del servidor local, para ver los cambios en la
+     web local. No toca GitHub. */
+  function guardarLocal() {
+    $("#carga-texto").textContent = "Guardando en esta carpeta…";
+    mostrarVista("vista-carga");
+
+    var pasos = [];
+    if (borrador) {
+      pasos.push(fetch("/__local/guardar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          archivo: ARCHIVO_PAGINA,
+          contenido: JSON.stringify(datos, null, 2) + "\n"
+        })
+      }).then(function (res) {
+        if (!res.ok) { throw new Error("HTTP " + res.status); }
+        borrador = false;
+      }));
+    }
+    if (borradorSitio) {
+      pasos.push(fetch("/__local/guardar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          archivo: ARCHIVO_SITIO,
+          contenido: JSON.stringify(datosSitio, null, 2) + "\n"
+        })
+      }).then(function (res) {
+        if (!res.ok) { throw new Error("HTTP " + res.status); }
+        borradorSitio = false;
+      }));
+    }
+
+    Promise.all(pasos).then(function () {
+      instantaneaPublicada = instantaneaActual();
+      capturarHistorial(true);
+      actualizarEstadoCambios();
+      arrancarVistaPrevia();
+      mostrarVista("vista-editor");
+      mostrarAvisoVista();
+      toast("Guardado en esta carpeta. Recargá la web local (Ctrl+F5) para ver los cambios.", "ok", 6000);
+    }).catch(function (err) {
+      mostrarVista("vista-editor");
+      toast("No se pudo guardar en local: " + err.message, "error", 6000);
+    });
+  }
+
   function publicar() {
+    if (MODO_LOCAL) { guardarLocal(); return; }
     pedirConfirmacion(
       "¿Publicar los cambios? Sí: crea un commit en GitHub y la web se actualiza en ~1 minuto.",
       function () {
@@ -1525,7 +1875,7 @@
         actualizarEstadoCambios();
         arrancarVistaPrevia();
         mostrarVista("vista-editor");
-        $("#vista-aviso").hidden = false;
+        mostrarAvisoVista();
         toast("Cambios publicados. GitHub Pages los aplica en ~1 minuto.", "ok", 5200);
       }).catch(function (err) {
           mostrarVista("vista-editor");
@@ -1568,6 +1918,12 @@
       sessionStorage.removeItem(CLAVE_TOKEN);
       sessionStorage.removeItem("BQ_LOGIN");
       /* Los borradores quedan: si volvé a entrar, los recuperás. */
+      if (MODO_LOCAL) {
+        /* En modo local no hay pantalla de login a la que volver:
+           «Salir» lleva a la web. */
+        location.href = "/";
+        return;
+      }
       location.reload();
     });
     $("#boton-carga-reintentar").addEventListener("click", cargarEditor);
@@ -1585,7 +1941,7 @@
     });
     $("#boton-recargar-vista").addEventListener("click", function () {
       arrancarVistaPrevia();
-      $("#vista-aviso").hidden = true;
+      ocultarAvisoVista();
     });
 
     /* Deshacer / rehacer: botones + atajos de teclado */
@@ -1708,6 +2064,7 @@
       var trajoToken = capturarTokenDelHash();
       if (vinoPorLogin) { sessionStorage.removeItem("BQ_LOGIN"); }
       token = tokenValidoSeparado();
+      if (!token && MODO_LOCAL) { cargarEditorLocal(); return; }
       if (!token) { mostrarVista("vista-auth"); return; }
       if (trajoToken) { toast("Sesión iniciada con GitHub.", "ok"); }
       cargarEditor();

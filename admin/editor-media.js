@@ -14,11 +14,19 @@
 (function () {
   "use strict";
 
-  var REPO = "laboutiquecatydog/laboutiquecatydog.github.io";
+  var REPO = "Estalingradocorp/laboutiquecatydog.github.io";
   var BRANCH = "main";
   var API = "https://api.github.com";
   var CARPETA = "assets/img";
   var CLAVE_TOKEN = "BQ_TOKEN";
+
+  /* Modo local: en localhost/127.0.0.1 sin token, la galería y la
+     subida usan esta carpeta (assets/img/) en vez de la API de
+     GitHub, para poder probar imágenes sin credenciales. */
+  function esLocal() {
+    var h = location.hostname;
+    return (h === "localhost" || h === "127.0.0.1") && !token();
+  }
 
   var EXTENSIONES = ["jpg", "jpeg", "png", "webp", "svg"];
   var TAMANO_MAX = 8 * 1024 * 1024;
@@ -28,6 +36,7 @@
   var listaGaleria = null;     /* [{name, path, size}] */
   var miniaturas = {};         /* path -> objectURL */
   var pendiente = null;        /* archivo procesado listo para subir */
+  var seleccion = [];          /* ítems de galería marcados (uno o varios) */
 
   /* ----------------------------- Base API ------------------------------- */
   function token() { return sessionStorage.getItem(CLAVE_TOKEN) || ""; }
@@ -56,6 +65,15 @@
   /* ----------------------------- Galería -------------------------------- */
   function listarGaleria() {
     if (listaGaleria) { return Promise.resolve(listaGaleria); }
+    if (esLocal()) {
+      return fetch("/__local/imagenes").then(function (res) {
+        if (!res.ok) { throw new Error("No se pudo leer la galería local (código " + res.status + ")."); }
+        return res.json();
+      }).then(function (items) {
+        listaGaleria = items;
+        return listaGaleria;
+      });
+    }
     return apiFetch("/repos/" + REPO + "/contents/" + CARPETA + "?ref=" + BRANCH)
       .then(function (res) { if (!res.ok) { alFallar(res); } return res.json(); })
       .then(function (items) {
@@ -79,9 +97,19 @@
      - y cada miniatura se pide solo cuando la miniatura entra en pantalla. */
   function miniaturaDe(item) {
     if (miniaturas[item.path]) { return Promise.resolve(miniaturas[item.path]); }
-    return apiFetch("/repos/" + REPO + "/contents/" + item.path + "?ref=" + BRANCH,
-      { headers: { Accept: "application/vnd.github.raw" } })
-      .then(function (res) { if (!res.ok) { alFallar(res); } return res.blob(); })
+    var pedir;
+    if (esLocal()) {
+      /* En local la imagen ya está en este disco: se pide al servidor */
+      pedir = fetch("/" + item.path).then(function (res) {
+        if (!res.ok) { throw new Error("No se pudo leer la imagen local."); }
+        return res.blob();
+      });
+    } else {
+      pedir = apiFetch("/repos/" + REPO + "/contents/" + item.path + "?ref=" + BRANCH,
+        { headers: { Accept: "application/vnd.github.raw" } })
+        .then(function (res) { if (!res.ok) { alFallar(res); } return res.blob(); });
+    }
+    return pedir
       .then(function (blob) {
         return new Promise(function (ok) {
           var url = URL.createObjectURL(blob);
@@ -188,18 +216,17 @@
         pie.textContent = item.name;
         boton.appendChild(pie);
         boton.addEventListener("click", function () {
-          var r = miniaturas[item.path];
-          if (!r || !r.url) { return; }
-          var cfg = ACTUAL;
-          if (!cfg) { return; }
-          var elegir = cfg.alElegir;
-          cerrar();
-          elegir({
-            imagen: item.path,
-            srcset: cfg.conSrcset ? variantesGaleria(item, r.ancho) : null,
-            ancho: r.ancho,
-            alto: r.alto
-          });
+          /* Tocar marca o desmarca: se pueden elegir varias imágenes
+             de una vez y confirmar con el botón de arriba. */
+          var i = seleccion.indexOf(item);
+          if (i === -1) {
+            seleccion.push(item);
+            boton.classList.add("is-seleccionada");
+          } else {
+            seleccion.splice(i, 1);
+            boton.classList.remove("is-seleccionada");
+          }
+          actualizarSeleccion();
         });
         zona.appendChild(boton);
         observarMiniatura(boton, item);
@@ -210,6 +237,40 @@
       aviso.className = "form-vacio";
       aviso.textContent = err.message;
       zona.appendChild(aviso);
+    });
+  }
+
+  /* --------------------- Selección múltiple de la galería ---------------- */
+  function actualizarSeleccion() {
+    var grupo = document.getElementById("media-seleccion");
+    var contador = document.getElementById("media-contador");
+    var boton = document.getElementById("media-confirmar");
+    var n = seleccion.length;
+    if (grupo) { grupo.hidden = n === 0; }
+    if (contador) { contador.textContent = n + (n === 1 ? " imagen" : " imágenes"); }
+    if (boton) { boton.textContent = n > 1 ? "Agregar " + n : "Usar imagen"; }
+    if (boton) { boton.hidden = n === 0; }
+  }
+
+  function confirmarSeleccion() {
+    var cfg = ACTUAL;
+    if (!cfg || !seleccion.length) { return; }
+    var elegidas = seleccion.slice();
+    seleccion = [];
+    /* Cada imagen necesita sus medidas: se aseguran las miniaturas */
+    Promise.all(elegidas.map(function (item) {
+      return miniaturaDe(item).then(function (r) {
+        return {
+          imagen: item.path,
+          srcset: cfg.conSrcset ? variantesGaleria(item, r.ancho) : null,
+          ancho: r.ancho,
+          alto: r.alto
+        };
+      });
+    })).then(function (medias) {
+      cerrar();
+      if (cfg.alElegirMultiple) { cfg.alElegirMultiple(medias); }
+      else if (cfg.alElegir && medias.length) { cfg.alElegir(medias[0]); }
     });
   }
 
@@ -336,6 +397,67 @@
     boton.disabled = true;
     boton.textContent = "Subiendo…";
 
+    var subida;
+    if (esLocal()) {
+      /* Modo local: los archivos se escriben en assets/img/ de esta
+         carpeta a través del servidor de previsualización. */
+      subida = datos.archivos.reduce(function (cadena, arch) {
+        return cadena.then(function () {
+          return fetch("/__local/subir-imagen", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ruta: arch.ruta, b64: arch.b64 })
+          }).then(function (res) {
+            if (!res.ok) { throw new Error("No se pudo guardar la imagen en local (código " + res.status + ")."); }
+            return res.json();
+          });
+        });
+      }, Promise.resolve());
+    } else {
+      subida = subirAGithub(datos);
+    }
+
+    subida
+      .then(function () {
+        /* La galería cambió: que la próxima apertura la vuelva a leer */
+        listaGaleria = null;
+        miniaturas = {};
+        var resultado = {
+          imagen: datos.archivos[0].ruta,
+          srcset: datos.srcset,
+          ancho: datos.ancho,
+          alto: datos.alto
+        };
+        /* Copia local para la vista previa: el archivo ya está subido
+           (en GitHub o en este disco) — el editor la inyecta en la
+           miniatura para verla al instante. */
+        window.BQ_SUBIDAS = window.BQ_SUBIDAS || {};
+        window.BQ_SUBIDAS[resultado.imagen] = datos.prevista;
+        /* Si el modal se cerró durante la subida, la imagen queda subida
+           pero no se aplica a ningún campo: se avisa para que la clienta
+           sepa que puede elegirla desde la galería. */
+        var seguir = document.getElementById("modal-imagenes").hidden;
+        cerrar();
+        if (seguir) {
+          alerta("La imagen se subió (" + datos.nombre + "), pero el selector se había cerrado: " +
+            "abrí de nuevo el campo y elegila desde la galería.");
+          return;
+        }
+        if (cfg && cfg.alElegir) { cfg.alElegir(resultado); }
+      })
+      .catch(function (err) {
+        var b = document.getElementById("media-subir-btn");
+        if (b) {
+          b.disabled = false;
+          b.textContent = "Subir y usar";
+        }
+        alerta(err.message);
+      });
+  }
+
+  /* Subida publicada: un solo commit por imagen con la API de Git Data
+     (blobs + árbol + commit + actualizar la referencia). */
+  function subirAGithub(datos) {
     var shas = [];
     var paso = Promise.resolve();
 
@@ -353,7 +475,7 @@
     });
 
     var base = null;
-    paso
+    return paso
       .then(function () {
         return apiFetch("/repos/" + REPO + "/git/ref/heads/" + BRANCH);
       })
@@ -395,42 +517,7 @@
           body: JSON.stringify({ sha: commit.sha, force: false })
         });
       })
-      .then(function (res) {
-        if (!res.ok) { alFallar(res); }
-        /* La galería cambió: que la próxima apertura la vuelva a leer */
-        listaGaleria = null;
-        miniaturas = {};
-        var resultado = {
-          imagen: datos.archivos[0].ruta,
-          srcset: datos.srcset,
-          ancho: datos.ancho,
-          alto: datos.alto
-        };
-        /* Copia local para la vista previa: el archivo ya está en GitHub
-           pero todavía no en este disco — el editor la inyecta en la
-           miniatura para verla al instante. */
-        window.BQ_SUBIDAS = window.BQ_SUBIDAS || {};
-        window.BQ_SUBIDAS[resultado.imagen] = datos.prevista;
-        /* Si el modal se cerró durante la subida, la imagen queda subida
-           pero no se aplica a ningún campo: se avisa para que la clienta
-           sepa que puede elegirla desde la galería. */
-        var seguir = document.getElementById("modal-imagenes").hidden;
-        cerrar();
-        if (seguir) {
-          alerta("La imagen se subió (" + datos.nombre + "), pero el selector se había cerrado: " +
-            "abrí de nuevo el campo y elegila desde la galería.");
-          return;
-        }
-        if (cfg && cfg.alElegir) { cfg.alElegir(resultado); }
-      })
-      .catch(function (err) {
-        var b = document.getElementById("media-subir-btn");
-        if (b) {
-          b.disabled = false;
-          b.textContent = "Subir y usar";
-        }
-        alerta(err.message);
-      });
+      .then(function (res) { if (!res.ok) { alFallar(res); } return res.json(); });
   }
 
   function alerta(texto) {
@@ -472,6 +559,8 @@
   function cerrar() {
     pendiente = null;
     ACTUAL = null;
+    seleccion = [];
+    actualizarSeleccion();
     if (window.BQModales && window.BQModales.cerrar) {
       window.BQModales.cerrar(document.getElementById("modal-imagenes"));
     } else {
@@ -502,6 +591,7 @@
     conectado = true;
     document.getElementById("media-tab-galeria").addEventListener("click", function () { activarPestana("galeria"); });
     document.getElementById("media-tab-subir").addEventListener("click", function () { activarPestana("subir"); });
+    document.getElementById("media-confirmar").addEventListener("click", confirmarSeleccion);
     document.getElementById("media-archivo").addEventListener("change", function (ev) {
       var f = ev.target.files && ev.target.files[0];
       if (f && ACTUAL) { procesarPendiente(f); }
@@ -517,6 +607,8 @@
       document.getElementById("modal-imagenes-titulo").textContent = ACTUAL.titulo || "Elegir imagen";
       /* Reset del estado de una apertura anterior */
       pendiente = null;
+      seleccion = [];
+      actualizarSeleccion();
       document.getElementById("media-prevista").hidden = true;
       document.getElementById("media-prevista-img").removeAttribute("src");
       document.getElementById("media-prevista-info").textContent = "";
