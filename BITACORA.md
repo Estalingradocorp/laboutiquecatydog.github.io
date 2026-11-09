@@ -689,6 +689,43 @@ Todo en local; la publicación con git se hace al final de la tanda. Contenido d
 
 ---
 
+## 2026-11-09 — Varias fotos por producto (solo local, sin publicar)
+
+**Lo que reportó el cliente:** al agregar un producto con 4 imágenes (las recortó una por una), **solo quedó cargada la primera**; las otras 3 se perdían.
+
+### Causa raíz (confirmada con prueba A/B)
+Había dos Causes, ambas en el panel admin:
+1. **El destino no sabía recibir varias imágenes.** El selector de imágenes (`BQMedia`) ya tenía el callback `alElegirMultiple` (usado por los campos de sección), pero los formularios del panel **no lo implementaban** en las listas: al confirmar una selección múltiple, el selector caía al `alElegir` de una sola imagen y **descartaba las demás**.
+2. **El input de archivos de la PC era de una sola imagen.** `media-archivo` no tenía el atributo `multiple` y el handler leía `files[0]`: aunque se eligieran 4 archivos, solo se procesaba el primero.
+
+Prueba A/B con el código anterior (stash temporal): 4 imágenes seleccionadas → `meta: "1 foto"`, 1 fila de foto. Con la corrección: `meta: "4 fotos"`, 4 filas.
+
+### Correcciones
+- `admin/editor-form.js` — los tres lugares que reciben imágenes del selector ahora implementan `alElegirMultiple`:
+  - **Lista de productos** (`+ Agregar producto`): todas las imágenes elegidas se cargan como **fotos del mismo producto** (antes solo la primera).
+  - **Fotos de un producto** (`+ Agregar foto`, dentro de la ventana del producto): todas se agregan a ese producto.
+  - **Fotos del carrusel / tarjetas de categoría**: cada imagen es un ítem nuevo de la lista.
+- `admin/editor-media.js`:
+  - El input de archivos de la PC acepta **varias imágenes** (`multiple`).
+  - Nueva **cola de lote**: los archivos se procesan uno por uno (cada uno con su propio recorte, con el contador «Imagen N de M») y al terminar **se aplican todos juntos**.
+  - Un archivo inválido o demasiado pesado **no corta el lote**: se avisa y se sigue con el siguiente.
+  - Si el destino no sabe recibir varias, se aplica solo la primera (comportamiento seguro por defecto).
+- `admin/editor.html` — texto del selector actualizado: «Elegí uno o varios archivos de tu PC».
+
+### Verificación (headless, Edge + servidor local, 3 pruebas)
+| Prueba | Resultado |
+|---|---|
+| Galería: 4 imágenes seleccionadas + recorte de cada una → producto nuevo | 4 fotos ✓ |
+| PC: 4 archivos en un solo paso + recorte de cada uno | 4 fotos ✓ |
+| Editar producto existente: `+ Agregar foto` con 4 de la galería | 3 → 7 fotos ✓ |
+| Regresión: subir 1 sola imagen | 1 foto ✓ |
+| Regresión: editar foto existente con el lápiz ✎ | sigue en la lista ✓ |
+| Errores JS | 0 |
+
+**Estado: solo local.** No se publicó nada (sin commit, sin push). Las imágenes de prueba que generaron las pruebas se borraron del disco.
+
+---
+
 ## 2026-11-07 — Migración a Estalingradocorp, Cloudflare y panel sin GitHub para el cliente
 
 Tanda larga: el sitio pasó de `laboutiquecatydog/laboutiquecatydog.github.io` a `Estalingradocorp/laboutiquecatydog.github.io` (dueño nuevo), dominio propio en Cloudflare cuenta `nicotips27`, certificado HTTPS pendiente y panel con usuario/contraseña literal (sin cuenta de GitHub para el cliente).

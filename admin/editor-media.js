@@ -37,6 +37,9 @@
   var miniaturas = {};         /* path -> objectURL */
   var pendiente = null;        /* archivo procesado listo para subir */
   var seleccion = [];          /* ítems de galería marcados (uno o varios) */
+  var colaArchivos = [];       /* archivos de la PC pendientes de recortar */
+  var loteSubidas = [];        /* resultados de las imágenes ya subidas del lote */
+  var totalLote = 0;           /* cuántas imágenes tenía el lote elegido */
 
   /* ----------------------------- Base API ------------------------------- */
   function token() { return sessionStorage.getItem(CLAVE_TOKEN) || ""; }
@@ -529,14 +532,16 @@
        tenía control (una foto de 40 MB colapsaba el navegador). */
     if (!archivo) { return; }
     if (archivo.size > TAMANO_MAX) {
-      alerta("La imagen pesa " + Math.round(archivo.size / 1024 / 1024) +
+      alerta("La imagen «" + archivo.name + "» pesa " + Math.round(archivo.size / 1024 / 1024) +
         " MB. El máximo es " + Math.round(TAMANO_MAX / 1024 / 1024) +
         " MB. Bajala o recortala antes de subirla.");
+      seguirConElSiguiente();
       return;
     }
     var extArchivo = (archivo.name.split(".").pop() || "").toLowerCase();
     if (EXTENSIONES.indexOf(extArchivo) === -1) {
-      alerta("Ese tipo de archivo no se puede subir. Usá JPG, PNG, WEBP o SVG.");
+      alerta("El archivo «" + archivo.name + "» no es una imagen válida. Usá JPG, PNG, WEBP o SVG.");
+      seguirConElSiguiente();
       return;
     }
     cargarImagen(archivo).then(function (r) {
@@ -582,11 +587,49 @@
            esperando un segundo clic en «Subir y usar», y parecía
            atascado). Si la subida falla, el botón reintenta. */
         subirPendiente();
-      }); /* fin de abrirRecorte */
+      }, totalLote > 1 ? { i: loteSubidas.length + 1, total: totalLote } : null);
     }).catch(function (err) {
       document.getElementById("media-prevista").hidden = true;
       alerta(err.message);
+      continuarLote();
     });
+  }
+
+  /* Siguiente archivo del lote (varias imágenes elegidas a la vez). */
+  function continuarLote() {
+    if (colaArchivos.length) {
+      var siguiente = colaArchivos.shift();
+      procesarPendiente(siguiente);
+      return;
+    }
+    /* No quedan archivos: se cierra y se aplican las que se subieron. */
+    finalizarLote();
+  }
+
+  /* Atajo: sigue con el siguiente archivo del lote (o cierra si no hay). */
+  function seguirConElSiguiente() { continuarLote(); }
+
+  /* Cierra el selector y aplica todas las imágenes subidas del lote. */
+  function finalizarLote() {
+    var cfg = ACTUAL;
+    var todas = loteSubidas.slice();
+    /* Si el modal se cerró durante la subida, las imágenes quedan
+       subidas pero no se aplican a ningún campo: se avisa. */
+    var seguir = document.getElementById("modal-imagenes").hidden;
+    cerrar();
+    if (!todas.length) { return; }
+    if (seguir) {
+      alerta("La imagen se subió (" + todas[0].imagen + "), pero el selector se había cerrado: " +
+        "abrí de nuevo el campo y elegila desde la galería.");
+      return;
+    }
+    /* Lote de varias fotos: se aplican todas juntas (si el destino
+       sabe recibir varias). Si no, se aplica solo la primera. */
+    if (todas.length > 1 && cfg && cfg.alElegirMultiple) {
+      cfg.alElegirMultiple(todas);
+    } else if (cfg && cfg.alElegir) {
+      cfg.alElegir(todas[0]);
+    }
   }
 
   /* Sube los archivos ya preparados (en local: a esta carpeta; en
@@ -640,17 +683,17 @@
         listaGaleria = null;
         miniaturas = {};
         var resultado = resultadoDe(datos);
-        /* Si el modal se cerró durante la subida, la imagen queda subida
-           pero no se aplica a ningún campo: se avisa para que la clienta
-           sepa que puede elegirla desde la galería. */
-        var seguir = document.getElementById("modal-imagenes").hidden;
-        cerrar();
-        if (seguir) {
-          alerta("La imagen se subió (" + datos.nombre + "), pero el selector se había cerrado: " +
-            "abrí de nuevo el campo y elegila desde la galería.");
+        loteSubidas.push(resultado);
+        /* Si quedan archivos del lote, se sigue con el siguiente (cada
+           uno con su propio recorte) sin cerrar el selector. */
+        if (colaArchivos.length) {
+          boton.disabled = false;
+          boton.textContent = "Subir y usar";
+          continuarLote();
           return;
         }
-        if (cfg && cfg.alElegir) { cfg.alElegir(resultado); }
+        /* Última del lote: se cierra y se aplican todas juntas. */
+        finalizarLote();
       })
       .catch(function (err) {
         var b = document.getElementById("media-subir-btn");
@@ -766,6 +809,9 @@
     pendiente = null;
     ACTUAL = null;
     seleccion = [];
+    colaArchivos = [];
+    loteSubidas = [];
+    totalLote = 0;
     actualizarSeleccion();
     cerrarRecorte();
     if (window.BQModales && window.BQModales.cerrar) {
@@ -844,8 +890,15 @@
       if (REC) { REC.arrastrando = null; }
     });
     document.getElementById("media-archivo").addEventListener("change", function (ev) {
-      var f = ev.target.files && ev.target.files[0];
-      if (f && ACTUAL) { procesarPendiente(f); }
+      var archivos = ev.target.files ? Array.prototype.slice.call(ev.target.files) : [];
+      if (!archivos.length || !ACTUAL) { return; }
+      /* Varias fotos de una vez: se procesan una por una (cada una con
+         su recorte) y al terminar se aplican TODAS juntas. Antes solo
+         se tomaba la primera y las demás se perdían. */
+      totalLote = archivos.length;
+      loteSubidas = [];
+      colaArchivos = archivos.slice(1);
+      procesarPendiente(archivos[0]);
     });
     document.getElementById("media-subir-btn").addEventListener("click", subirPendiente);
   }
@@ -859,6 +912,9 @@
       /* Reset del estado de una apertura anterior */
       pendiente = null;
       seleccion = [];
+      colaArchivos = [];
+      loteSubidas = [];
+      totalLote = 0;
       actualizarSeleccion();
       document.getElementById("media-prevista").hidden = true;
       document.getElementById("media-prevista-img").removeAttribute("src");

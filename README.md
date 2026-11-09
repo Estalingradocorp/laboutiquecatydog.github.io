@@ -196,8 +196,8 @@ Es una lista `secciones`. **El orden de la lista es el orden en la web.** Cada s
 |---|---|
 | Editar cualquier texto | Clic sobre el texto en la vista previa (títulos, párrafos, botones, menú, pie, viñetas, productos) y escribir encima. También en el modo «Textos» con formularios |
 | Cambiar una imagen | Clic sobre la foto en la vista previa → galería del repo o subir una nueva |
-| Subir imágenes | Pestaña «Subir desde la PC»: canvas la optimiza (JPEG 82 %, máx. 1600 px + variante `-900` cuando el campo la usa; el logo mantiene PNG). Va al repo en **un solo commit por imagen** (Git Data API). En modo local se escribe en `assets/img/` de la carpeta |
-| Elegir varias imágenes de una vez | En la galería se tocan las fotos (✓) y se confirma con el contador + botón junto a «Subir desde la PC»: cada una pasa por el **editor de recorte** (proporción, zoom 25–400 %, arrastre) una por una y al terminar **se agregan todas** como fotos/slides nuevas en la misma lista |
+| Subir imágenes | Pestaña «Subir desde la PC»: se pueden elegir **varias fotos de una vez**; cada una pasa por el editor de recorte (con el contador «Imagen N de M») y al terminar se aplican **todas juntas**. El canvas optimiza (JPEG 82 %, máx. 1600 px + variante `-900` cuando el campo la usa; el logo mantiene PNG). Va al repo en **un solo commit por imagen** (Git Data API). En modo local se escribe en `assets/img/` de la carpeta |
+| Elegir varias imágenes de una vez | En la galería se tocan las fotos (✓) y se confirma con el contador + botón junto a «Subir desde la PC»: cada una pasa por el **editor de recorte** (proporción, zoom 25–400 %, arrastre) una por una y al terminar **se agregan todas**: en un producto, **todas quedan como fotos suyas**; en el carrusel o las tarjetas de categoría, cada una es un ítem nuevo de la lista |
 | Editar una foto ya subida | En la ventana de producto, el **lápiz ✎** abre el editor de recorte con la foto existente (antes solo desplegaba datos; esos están ahora en **«···»**) |
 | Agregar / quitar / reordenar secciones | Lista de la izquierda: drag & drop, ↑ ↓, ocultar (ojo), duplicar, eliminar, «+ Agregar sección» |
 | Agregar / quitar / reordenar productos | En el formulario («+ Agregar producto», «Quitar este producto») o con la insignia ✕ que aparece sobre el producto en la vista previa |
@@ -427,6 +427,7 @@ Sitio publicado en GitHub Pages con el contenido en JSON. **Todo el rediseño de
 | **Botón «Filtros» + soporte 2026-11-08** | Botón minimalista que pliega/despliega los filtros del catálogo (conservando la selección; por defecto plegados); ícono/enlace de **soporte** (`estalingradocorp.com.ar/soporte/soporte.html`) en el pie de la web, en la barra del panel y en el login | Publicado |
 | **Ajustes del panel 2026-11-08** | Al agregar un producto se limpia el buscador del panel (el nuevo no queda oculto); «Recortar y subir» sube en un paso (antes pedía un segundo clic); zoom de recorte desde 25 %; el panel publicado pregunta antes de aplicar un borrador que difiere de lo publicado | En esta publicación |
 | **Auditoría de seguridad 2026-11-08** | CSRF local cerrado (origen + Content-Type + sin `svg`), XSS vía `empresaUrl` cerrado; informe completo en `guias/INFORME-SEGURIDAD.md` | En esta publicación |
+| **Varias fotos por producto 2026-11-09** | Al elegir o subir varias imágenes, **se aplican todas** (antes solo quedaba la primera): el input de la PC acepta varios archivos (cola con «Imagen N de M») y las listas del panel (producto, fotos del producto, carrusel, tarjetas) reciben el lote completo | **Solo local — sin publicar** |
 
 ---
 

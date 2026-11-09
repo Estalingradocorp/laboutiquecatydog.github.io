@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="editor.css?v=9e6d8e1e" />
+  <link rel="stylesheet" href="editor.css?v=1cbf82d2" />
   <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
@@ -183,10 +183,11 @@
         <p class="form-vacio">Cargando la galería…</p>
       </div>
       <div id="media-subir" class="media-subir" hidden>
-        <label class="media-drop" for="media-archivo">Elegí un archivo de tu PC (JPG, PNG o WEBP)</label>
+        <label class="media-drop" for="media-archivo">Elegí uno o varios archivos de tu PC (JPG, PNG o WEBP)</label>
         <!-- El input no se oculta con "hidden": queda invisible pero
-             enfocable, para que se pueda usar con el teclado. -->
-        <input id="media-archivo" class="visualmente-oculto" type="file" accept="image/jpeg,image/png,image/webp" />
+             enfocable, para que se pueda usar con el teclado.
+             "multiple" permite elegir varias fotos de una vez. -->
+        <input id="media-archivo" class="visualmente-oculto" type="file" accept="image/jpeg,image/png,image/webp" multiple />
         <!-- Editor de recorte: se encuadra y se elige el zoom antes de subir -->
         <div id="media-recorte" class="media-recorte" hidden>
           <div class="recorte-ratios" role="group" aria-label="Proporción del recorte">
@@ -322,9 +323,9 @@
   <!-- ============ ZONA DE AVISOS (TOAST) ============ -->
   <div id="toasts" class="toasts" aria-live="polite"></div>
 
-  <script src="editor-form.js?v=9e6d8e1e"></script>
-  <script src="editor-inline.js?v=9e6d8e1e"></script>
-  <script src="editor-media.js?v=9e6d8e1e"></script>
-  <script src="editor.js?v=9e6d8e1e"></script>
+  <script src="editor-form.js?v=1cbf82d2"></script>
+  <script src="editor-inline.js?v=1cbf82d2"></script>
+  <script src="editor-media.js?v=1cbf82d2"></script>
+  <script src="editor.js?v=1cbf82d2"></script>
 </body>
 </html>

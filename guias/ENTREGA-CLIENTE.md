@@ -141,7 +141,7 @@ El catálogo de la web tiene **dos grupos de filtros** (por mascota y por catego
 | Crear una categoría nueva | En la sección **Productos** (modo **Textos**), bloque **«Categorías de producto»** → «+ Nueva categoría», y le ponés el nombre. Las categorías se ven como píldoras, igual que los filtros de la web |
 | Renombrar una categoría | En ese mismo bloque: escribís el nombre nuevo en la píldora y listo (no se rompe lo que ya está cargado) |
 | Quitar una categoría | En ese mismo bloque: botón **✕** de la píldora. Los productos que la usaban quedan sin esa categoría |
-| Agregar varias fotos de una vez | Al elegir una foto, tocás varias en la galería (✓) y confirmás con el contador + botón junto a «Subir desde la PC»: la primera va al campo y el resto se agrega como fotos nuevas |
+| Agregar varias fotos de una vez | Hay dos formas, y **las dos cargan todas las fotos**: (1) en la galería, tocás varias (✓) y confirmás con el contador + botón junto a «Subir desde la PC»; (2) en «Subir desde la PC» elegís **varios archivos de una vez** en el explorador. Cada foto pasa por el editor de recorte (encuadre y zoom) una por una —vas a ver «Imagen 2 de 4», etc.— y al terminar **todas quedan cargadas**: en un producto, todas como fotos suyas; en el carrusel o las tarjetas, cada una como foto nueva |
 | Poner un producto arriba de todo | En la ventanita del producto → interruptor **«Destacado»** |
 | Poner el precio | Campo **«Precio (opcional)»**: si escribe un número (12000) sale `$12.000`; si escribe texto («Consultar») sale tal cual |
 

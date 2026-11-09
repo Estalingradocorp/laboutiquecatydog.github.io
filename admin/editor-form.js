@@ -872,6 +872,31 @@
             alCambiar(true);
             /* El item nuevo se abre directo para completar los datos */
             abrirModalItem(valor.length - 1, clave, valor, raiz, ruta, alCambiar, alCambiarImagen, contexto);
+          },
+          /* Varias imágenes de una vez: para un producto, todas pasan a
+             ser fotos SUyas (antes se aplicaba solo la primera y las
+             demás se perdían). Para slides y tarjetas, cada imagen es
+             un ítem nuevo de la lista. */
+          alElegirMultiple: function (medias) {
+            if (!medias || !medias.length) { return; }
+            TEXTO_BUSQUEDA = "";
+            if (clave === "productos") {
+              var item = nuevoItem(clave, medias[0], valor);
+              if (!Array.isArray(item.fotos)) { item.fotos = []; }
+              for (var i = 1; i < medias.length; i++) {
+                item.fotos.push({
+                  foto: medias[i].imagen, alt: "",
+                  ancho: medias[i].ancho || 0, alto: medias[i].alto || 0
+                });
+              }
+              valor.push(item);
+            } else {
+              for (var j = 0; j < medias.length; j++) {
+                valor.push(nuevoItem(clave, medias[j], valor));
+              }
+            }
+            alCambiar(true);
+            abrirModalItem(valor.length - 1, clave, valor, raiz, ruta, alCambiar, alCambiarImagen, contexto);
           }
         });
       });
@@ -1085,6 +1110,19 @@
           tipo: "foto",
           alElegir: function (media) {
             valor.push({ foto: media.imagen, alt: "", ancho: media.ancho || 0, alto: media.alto || 0 });
+            alCambiar(true);
+          },
+          /* Varias fotos de una vez: se agregan TODAS al producto.
+             Antes, al elegir varias en la galería, solo entraba la
+             primera (las demás se perdían sin avisar). */
+          alElegirMultiple: function (medias) {
+            if (!medias || !medias.length) { return; }
+            for (var i = 0; i < medias.length; i++) {
+              valor.push({
+                foto: medias[i].imagen, alt: "",
+                ancho: medias[i].ancho || 0, alto: medias[i].alto || 0
+              });
+            }
             alCambiar(true);
           }
         });
@@ -1416,6 +1454,14 @@
           conSrcset: clave === "slides",
           alElegir: function (media) {
             valor.push(nuevoItem(clave, media, valor));
+            alCambiar(true);
+          },
+          /* Varias imágenes de una vez: cada una es un ítem nuevo. */
+          alElegirMultiple: function (medias) {
+            if (!medias || !medias.length) { return; }
+            for (var i = 0; i < medias.length; i++) {
+              valor.push(nuevoItem(clave, medias[i], valor));
+            }
             alCambiar(true);
           }
         });
