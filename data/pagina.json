@@ -6,7 +6,7 @@
       "aria": "Bienvenida",
       "eyebrow": "Boutique para mascotas",
       "titulo": "Todo para **perros** y **gatos**, en un solo lugar",
-      "texto": "pruebaaaa 2.0",
+      "texto": "Alimento, accesorios y productos de cuidado para acompañarlos todos los días. Una selección pensada para el bienestar de tu mascota, con atención cercana en nuestro local de Salta.",
       "botonPrincipal": {
         "texto": "Consultar por WhatsApp",
         "mensaje": "Hola, quisiera consultar por sus productos para mascotas"
@@ -171,15 +171,18 @@
         {
           "titulo": "Accesorios y más",
           "descripcion": "Collares, correas, comederos y todo lo que suma al día a día.",
-          "mascotas": [],
+          "mascotas": [
+            "perros",
+            "gatos"
+          ],
           "precio": "",
           "mensajeWhatsApp": "Hola, quisiera consultar por accesorios para mascotas",
           "fotos": [
             {
-              "foto": "assets/img/accesorios-1-fc362b.jpg",
+              "foto": "assets/img/accesorios-1.jpg",
               "alt": "Accesorios y productos para mascotas",
               "ancho": 900,
-              "alto": 443
+              "alto": 415
             },
             {
               "foto": "assets/img/accesorios-2.jpg",
@@ -321,7 +324,9 @@
           "titulo": "Producto nuevo",
           "descripcion": "",
           "mascotas": [],
-          "categorias": [],
+          "categorias": [
+            "categoria-8"
+          ],
           "destacado": false,
           "precio": "2000",
           "mensajeWhatsApp": "Logo La Boutique\n\nPrueba en la carga de productos.",
@@ -331,26 +336,6 @@
               "alt": "",
               "ancho": 300,
               "alto": 225
-            }
-          ]
-        },
-        {
-          "titulo": "collares y perros",
-          "descripcion": "ffajfdj",
-          "mascotas": [],
-          "categorias": [
-            "juguetes",
-            "categoria-9"
-          ],
-          "destacado": false,
-          "precio": "1000000",
-          "mensajeWhatsApp": "dhgsgskjg",
-          "fotos": [
-            {
-              "foto": "assets/img/alimento-2-30da39.jpg",
-              "alt": "",
-              "ancho": 675,
-              "alto": 332
             }
           ]
         }
@@ -387,11 +372,11 @@
         },
         {
           "id": "categoria-8",
-          "titulo": "Nueva categoría"
+          "titulo": "Prueba 2"
         },
         {
           "id": "categoria-9",
-          "titulo": "correas"
+          "titulo": "Prueba 3"
         }
       ]
     },
