@@ -2107,7 +2107,7 @@
       token = tokenValidoSeparado();
       if (!token && MODO_LOCAL) { cargarEditorLocal(); return; }
       if (!token) { mostrarVista("vista-auth"); return; }
-      if (trajoToken) { toast("Sesión iniciada con GitHub.", "ok"); }
+      if (trajoToken) { toast("Iniciando sesión con éxito.", "ok"); }
       cargarEditor();
     } catch (e2) {
       mostrarVista("vista-auth");
