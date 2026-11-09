@@ -660,6 +660,9 @@ Todo en local; la publicación con git se hace al final de la tanda. Contenido d
 - Ambos con `target="_blank" rel="noopener"` y URL validada con `hrefSeguro()`.
 - Verificado headless: enlace en el pie, ícono en topbar y enlace en login, 0 errores JS.
 
+### Soporte por WhatsApp desde el panel
+- El ícono de soporte del **panel** (barra superior y login) ya no va a la página `soporte.html`: abre **WhatsApp directo** al `+54 9 387 513-3491` con mensaje listo («Hola, les escribo desde el panel de administración:») para que el cliente escriba errores, problemas o sugerencias. El pie de la **web pública** mantiene el enlace a `soporte.html`.
+
 ### Contenido y escaneo de esa jornada
 - El negocio sumó productos y categorías en local («Categoría de Prueba», «Prueba 2/3», foto de ícono nueva, datos en `data/*.json`): integrados al commit.
 - Escaneo de estrés (34 productos, carrusel de 10 fotos, payloads XSS, móvil): sin caídas, sin desbordes, 0 errores (detalle en la entrada anterior).
