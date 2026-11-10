@@ -689,12 +689,12 @@ Todo en local; la publicación con git se hace al final de la tanda. Contenido d
 
 ---
 
-## 2026-11-09 — Varias fotos por producto (solo local, sin publicar)
+## 2026-11-09 — Varias fotos por producto (corregido y publicado)
 
 **Lo que reportó el cliente:** al agregar un producto con 4 imágenes (las recortó una por una), **solo quedó cargada la primera**; las otras 3 se perdían.
 
 ### Causa raíz (confirmada con prueba A/B)
-Había dos Causes, ambas en el panel admin:
+Había dos causas, ambas en el panel admin:
 1. **El destino no sabía recibir varias imágenes.** El selector de imágenes (`BQMedia`) ya tenía el callback `alElegirMultiple` (usado por los campos de sección), pero los formularios del panel **no lo implementaban** en las listas: al confirmar una selección múltiple, el selector caía al `alElegir` de una sola imagen y **descartaba las demás**.
 2. **El input de archivos de la PC era de una sola imagen.** `media-archivo` no tenía el atributo `multiple` y el handler leía `files[0]`: aunque se eligieran 4 archivos, solo se procesaba el primero.
 
@@ -712,7 +712,7 @@ Prueba A/B con el código anterior (stash temporal): 4 imágenes seleccionadas �
   - Si el destino no sabe recibir varias, se aplica solo la primera (comportamiento seguro por defecto).
 - `admin/editor.html` — texto del selector actualizado: «Elegí uno o varios archivos de tu PC».
 
-### Verificación (headless, Edge + servidor local, 3 pruebas)
+### Verificación (headless, Edge + servidor local, 4 pruebas)
 | Prueba | Resultado |
 |---|---|
 | Galería: 4 imágenes seleccionadas + recorte de cada una → producto nuevo | 4 fotos ✓ |
@@ -722,7 +722,12 @@ Prueba A/B con el código anterior (stash temporal): 4 imágenes seleccionadas �
 | Regresión: editar foto existente con el lápiz ✎ | sigue en la lista ✓ |
 | Errores JS | 0 |
 
-**Estado: solo local.** No se publicó nada (sin commit, sin push). Las imágenes de prueba que generaron las pruebas se borraron del disco.
+### Publicación
+- Commit del código y la documentación: `c37ed09`.
+- El remoto había avanzado con publicaciones del panel del cliente (fotos `accesorios-1-fc362b.jpg` y `alimento-2-30da39.jpg`, y actualizaciones de datos): se hizo `git fetch` + **merge** (nunca force-push) → `6d92813`, sin conflictos y conservando todo el contenido del cliente.
+- Push desde la cuenta **`nicolabarranco27-a11y`** (la del dueño del trabajo), que tiene permiso `push: true` en `Estalingradocorp/laboutiquecatydog.github.io`.
+- Versión de assets del panel: `?v=1cbf82d2`.
+- Las imágenes de prueba que generaron las pruebas se borraron del disco.
 
 ---
 

@@ -427,7 +427,7 @@ Sitio publicado en GitHub Pages con el contenido en JSON. **Todo el rediseño de
 | **Botón «Filtros» + soporte 2026-11-08** | Botón minimalista que pliega/despliega los filtros del catálogo (conservando la selección; por defecto plegados); ícono/enlace de **soporte** (`estalingradocorp.com.ar/soporte/soporte.html`) en el pie de la web, en la barra del panel y en el login | Publicado |
 | **Ajustes del panel 2026-11-08** | Al agregar un producto se limpia el buscador del panel (el nuevo no queda oculto); «Recortar y subir» sube en un paso (antes pedía un segundo clic); zoom de recorte desde 25 %; el panel publicado pregunta antes de aplicar un borrador que difiere de lo publicado | En esta publicación |
 | **Auditoría de seguridad 2026-11-08** | CSRF local cerrado (origen + Content-Type + sin `svg`), XSS vía `empresaUrl` cerrado; informe completo en `guias/INFORME-SEGURIDAD.md` | En esta publicación |
-| **Varias fotos por producto 2026-11-09** | Al elegir o subir varias imágenes, **se aplican todas** (antes solo quedaba la primera): el input de la PC acepta varios archivos (cola con «Imagen N de M») y las listas del panel (producto, fotos del producto, carrusel, tarjetas) reciben el lote completo | **Solo local — sin publicar** |
+| **Varias fotos por producto 2026-11-09** | Al elegir o subir varias imágenes, **se aplican todas** (antes solo quedaba la primera): el input de la PC acepta varios archivos (cola con «Imagen N de M») y las listas del panel (producto, fotos del producto, carrusel, tarjetas) reciben el lote completo | Publicado (`c37ed09`) |
 
 ---
 
